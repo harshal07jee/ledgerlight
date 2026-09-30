@@ -137,3 +137,53 @@ def test_all_questions_in_bank_resolve_through_known_rule_type():
         rule_type = str(rule.get("type", "")).strip().lower()
         assert rule_type in KNOWN_RULE_TYPES, f"Question {qid} has unknown rule type: '{rule.get('type')}'"
 
+
+def test_routing_rule_and_unrecognized_choice():
+    """Routing questions return ROUTING, and unrecognized choices return UNVERIFIED (not FAIL)."""
+    routing_rule = {
+        "type": "routing",
+        "description": "Routing question: routes conditional branches; excluded from scoring."
+    }
+    # Any valid choice answer returns ROUTING
+    state, note = evaluate_pass_rule(routing_rule, "B2B Enterprise SaaS", return_note=True)
+    assert state == AnswerState.ROUTING
+    assert "excluded from score calculation" in note
+
+    # Unrecognized choice answers must return UNVERIFIED, NOT FAIL
+    choice_rule = {
+        "type": "choice",
+        "pass_values": ["Class I", "Class II"],
+        "partial_values": ["Pending Review"],
+        "fail_values": ["Class III"]
+    }
+    state, note = evaluate_pass_rule(choice_rule, "Completely Unknown Option", return_note=True)
+    assert state == AnswerState.UNVERIFIED
+    assert "unrecognized" in note
+
+
+def test_self_attested_strict_scoring_and_disclosed():
+    """A self_attested rule must NEVER return PASS for arbitrary text or numbers; disclosed returns DISCLOSED."""
+    sa_rule = {"type": "self_attested"}
+
+    # Boolean affirmations pass/fail
+    assert evaluate_pass_rule(sa_rule, "yes") == AnswerState.PASS
+    assert evaluate_pass_rule(sa_rule, True) == AnswerState.PASS
+    assert evaluate_pass_rule(sa_rule, "no") == AnswerState.FAIL
+    assert evaluate_pass_rule(sa_rule, False) == AnswerState.FAIL
+
+    # Arbitrary text, numbers, percentages MUST NEVER RETURN PASS
+    assert evaluate_pass_rule(sa_rule, "Executive succession plan is in place") == AnswerState.UNVERIFIED
+    assert evaluate_pass_rule(sa_rule, 1500000) == AnswerState.UNVERIFIED
+    assert evaluate_pass_rule(sa_rule, "85%") == AnswerState.UNVERIFIED
+    assert evaluate_pass_rule(sa_rule, 85.5) == AnswerState.UNVERIFIED
+
+    # Disclosed rule returns DISCLOSED
+    disc_rule = {
+        "type": "disclosed",
+        "description": "Unscored disclosure: recorded in diligence report; excluded from score calculation."
+    }
+    state, note = evaluate_pass_rule(disc_rule, "$1,500,000 NWC Peg", return_note=True)
+    assert state == AnswerState.DISCLOSED
+    assert "Recorded unscored disclosure" in note
+
+

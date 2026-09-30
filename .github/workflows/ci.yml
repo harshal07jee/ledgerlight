@@ -46,7 +46,7 @@ jobs:
         env:
           DATABASE_URL: postgresql://ledgerlight:ledgerlight_secret@localhost:5432/ledgerlight_db
         run: |
-          python apps/api/seeds/db_seed.py
+          python -m apps.api.seeds.db_seed
 
       - name: Run Pytest against PostgreSQL Service Container
         env:

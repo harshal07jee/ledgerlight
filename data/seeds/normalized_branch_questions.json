@@ -18,20 +18,8 @@
     "depends_on": null,
     "risk_weight": "CRITICAL",
     "pass_rule": {
-      "type": "choice",
-      "pass_values": [
-        "Yes",
-        "Class I",
-        "Class II",
-        "None",
-        "Fully Compliant",
-        "B2B Enterprise SaaS"
-      ],
-      "fail_values": [
-        "No",
-        "Critical Risk",
-        "Non-compliant"
-      ]
+      "type": "routing",
+      "description": "Routing question: routes conditional branches; excluded from scoring."
     },
     "evidence_type": "SELF_ATTESTED",
     "extraction_hint": null,
@@ -40,7 +28,7 @@
     "source_doc": "30% questions/Energy & CleanTech",
     "source_ref": "CleanTech_Model",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "ENERGY_02",
@@ -108,7 +96,7 @@
     "source_doc": "30% questions/Energy & CleanTech",
     "source_ref": "FEOC_Compliance",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "ENERGY_04",
@@ -231,7 +219,7 @@
     "source_doc": "30% questions/Energy & CleanTech",
     "source_ref": "Offtake_Agreements",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "ENERGY_07",
@@ -273,7 +261,7 @@
     "source_doc": "30% questions/Energy & CleanTech",
     "source_ref": "NEPA_Permitting",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "ENERGY_08",
@@ -315,7 +303,7 @@
     "source_doc": "30% questions/Energy & CleanTech",
     "source_ref": "Critical_Minerals",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "ENERGY_09",
@@ -357,7 +345,7 @@
     "source_doc": "30% questions/Energy & CleanTech",
     "source_ref": "Battery_Degradation",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "ENERGY_10",
@@ -399,7 +387,7 @@
     "source_doc": "30% questions/Energy & CleanTech",
     "source_ref": "NERC_CIP",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "ENERGY_11",
@@ -433,7 +421,7 @@
     "source_doc": "30% questions/Energy & CleanTech",
     "source_ref": "Asset_Retirement",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "FIN_TECH_01",
@@ -454,20 +442,8 @@
     "depends_on": null,
     "risk_weight": "CRITICAL",
     "pass_rule": {
-      "type": "choice",
-      "pass_values": [
-        "Yes",
-        "Class I",
-        "Class II",
-        "None",
-        "Fully Compliant",
-        "B2B Enterprise SaaS"
-      ],
-      "fail_values": [
-        "No",
-        "Critical Risk",
-        "Non-compliant"
-      ]
+      "type": "routing",
+      "description": "Routing question: routes conditional branches; excluded from scoring."
     },
     "evidence_type": "SELF_ATTESTED",
     "extraction_hint": null,
@@ -476,7 +452,7 @@
     "source_doc": "30% questions/FinTech",
     "source_ref": "Regulatory_Classification",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "FIN_TECH_02",
@@ -510,7 +486,7 @@
     "source_doc": "30% questions/FinTech",
     "source_ref": "AML_KYC",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "FIN_TECH_03",
@@ -544,7 +520,7 @@
     "source_doc": "30% questions/FinTech",
     "source_ref": "OFAC_Compliance",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "FIN_TECH_04",
@@ -586,7 +562,7 @@
     "source_doc": "30% questions/FinTech",
     "source_ref": "MSB_Licensing",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "FIN_TECH_05",
@@ -628,7 +604,7 @@
     "source_doc": "30% questions/FinTech",
     "source_ref": "Consumer_Lending",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "FIN_TECH_06",
@@ -670,7 +646,7 @@
     "source_doc": "30% questions/FinTech",
     "source_ref": "Credit_Reporting",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "FIN_TECH_07",
@@ -717,7 +693,7 @@
     "source_doc": "30% questions/FinTech",
     "source_ref": "Digital_Assets",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "FIN_TECH_08",
@@ -759,7 +735,7 @@
     "source_doc": "30% questions/FinTech",
     "source_ref": "RIA_Compliance",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "FIN_TECH_09",
@@ -795,7 +771,7 @@
     "source_doc": "30% questions/FinTech",
     "source_ref": "Funds_Safeguarding",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "FIN_TECH_10",
@@ -835,7 +811,7 @@
     "source_doc": "30% questions/FinTech",
     "source_ref": "Bank_Partnerships",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "FIN_TECH_11",
@@ -903,7 +879,7 @@
     "source_doc": "30% questions/FinTech",
     "source_ref": "GLBA_Compliance",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "FIN_TECH_13",
@@ -971,7 +947,7 @@
     "source_doc": "30% questions/FinTech",
     "source_ref": "Fraud_Monitoring",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "FIN_TECH_15",
@@ -1005,7 +981,7 @@
     "source_doc": "30% questions/FinTech",
     "source_ref": "UDAAP",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "HLTH_GEN_01",
@@ -1039,7 +1015,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Legal_IP_Regulatory",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "HLTH_GEN_02",
@@ -1073,7 +1049,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Legal_IP_Regulatory",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "HLTH_GEN_03",
@@ -1107,7 +1083,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Legal_IP_Regulatory",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "HLTH_GEN_04",
@@ -1141,7 +1117,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Human_Capital",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "HLTH_GEN_05",
@@ -1180,7 +1156,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Operations_Tech",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "MED_DEV_01",
@@ -1201,20 +1177,8 @@
     "depends_on": null,
     "risk_weight": "CRITICAL",
     "pass_rule": {
-      "type": "choice",
-      "pass_values": [
-        "Yes",
-        "Class I",
-        "Class II",
-        "None",
-        "Fully Compliant",
-        "B2B Enterprise SaaS"
-      ],
-      "fail_values": [
-        "No",
-        "Critical Risk",
-        "Non-compliant"
-      ]
+      "type": "routing",
+      "description": "Routing question: routes conditional branches; excluded from scoring."
     },
     "evidence_type": "SELF_ATTESTED",
     "extraction_hint": null,
@@ -1223,7 +1187,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Healthcare_Regulatory",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "MED_DEV_02",
@@ -1265,7 +1229,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Healthcare_Regulatory",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "MED_DEV_03",
@@ -1312,7 +1276,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Healthcare_Regulatory",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "MED_DEV_04",
@@ -1359,7 +1323,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Healthcare_Regulatory",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "MED_DEV_05",
@@ -1437,7 +1401,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Operations_Tech",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "MED_DEV_07",
@@ -1471,7 +1435,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Legal_IP_Regulatory",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "MED_DEV_08",
@@ -1505,7 +1469,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Manufacturing_Industrial",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "PHARM_01",
@@ -1526,20 +1490,8 @@
     "depends_on": null,
     "risk_weight": "CRITICAL",
     "pass_rule": {
-      "type": "choice",
-      "pass_values": [
-        "Yes",
-        "Class I",
-        "Class II",
-        "None",
-        "Fully Compliant",
-        "B2B Enterprise SaaS"
-      ],
-      "fail_values": [
-        "No",
-        "Critical Risk",
-        "Non-compliant"
-      ]
+      "type": "routing",
+      "description": "Routing question: routes conditional branches; excluded from scoring."
     },
     "evidence_type": "CERTIFICATE_OR_REPORT",
     "extraction_hint": {
@@ -1553,7 +1505,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Healthcare_Regulatory",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "PHARM_02",
@@ -1587,7 +1539,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Healthcare_Regulatory",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "PHARM_03",
@@ -1621,7 +1573,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Manufacturing_Industrial",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "PHARM_04",
@@ -1642,8 +1594,8 @@
     "depends_on": null,
     "risk_weight": "HIGH",
     "pass_rule": {
-      "type": "self_attested",
-      "description": "Passed if evidence or self-attestation is provided"
+      "type": "disclosed",
+      "description": "Unscored disclosure: recorded in diligence report; excluded from score calculation."
     },
     "evidence_type": "SELF_ATTESTED",
     "extraction_hint": null,
@@ -1652,7 +1604,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Legal_IP_Regulatory",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "PHARM_05",
@@ -1686,7 +1638,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Healthcare_Regulatory",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "BIOTECH_01",
@@ -1720,7 +1672,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Legal_IP_Regulatory",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "BIOTECH_02",
@@ -1754,7 +1706,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Legal_IP_Regulatory",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "BIOTECH_03",
@@ -1788,7 +1740,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Healthcare_Regulatory",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "BIOTECH_04",
@@ -1822,7 +1774,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Operations_Tech",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "DIGI_HLTH_01",
@@ -1856,7 +1808,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Healthcare_Regulatory",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "DIGI_HLTH_02",
@@ -1890,7 +1842,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Operations_Tech",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "DIGI_HLTH_03",
@@ -1911,8 +1863,8 @@
     "depends_on": null,
     "risk_weight": "HIGH",
     "pass_rule": {
-      "type": "self_attested",
-      "description": "Passed if evidence or self-attestation is provided"
+      "type": "disclosed",
+      "description": "Unscored disclosure: recorded in diligence report; excluded from score calculation."
     },
     "evidence_type": "FINANCIAL_TABLE",
     "extraction_hint": {
@@ -1923,7 +1875,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Revenue_Quality",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "DIGI_HLTH_04",
@@ -1957,7 +1909,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Operations_Tech",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "FIN_SECTOR_01",
@@ -1978,20 +1930,8 @@
     "depends_on": null,
     "risk_weight": "CRITICAL",
     "pass_rule": {
-      "type": "choice",
-      "pass_values": [
-        "Yes",
-        "Class I",
-        "Class II",
-        "None",
-        "Fully Compliant",
-        "B2B Enterprise SaaS"
-      ],
-      "fail_values": [
-        "No",
-        "Critical Risk",
-        "Non-compliant"
-      ]
+      "type": "routing",
+      "description": "Routing question: routes conditional branches; excluded from scoring."
     },
     "evidence_type": "SELF_ATTESTED",
     "extraction_hint": null,
@@ -2000,7 +1940,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Legal_IP_Regulatory",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "FIN_MTL_01",
@@ -2042,7 +1982,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Legal_IP_Regulatory",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "FIN_USURY_01",
@@ -2084,7 +2024,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Legal_IP_Regulatory",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "FIN_CRYPTO_01",
@@ -2131,7 +2071,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Legal_IP_Regulatory",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "FIN_AML_01",
@@ -2165,7 +2105,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Legal_IP_Regulatory",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "FIN_PCIDSS_01",
@@ -2269,7 +2209,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Financial_Controls",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "SAAS_01",
@@ -2290,20 +2230,8 @@
     "depends_on": null,
     "risk_weight": "CRITICAL",
     "pass_rule": {
-      "type": "choice",
-      "pass_values": [
-        "Yes",
-        "Class I",
-        "Class II",
-        "None",
-        "Fully Compliant",
-        "B2B Enterprise SaaS"
-      ],
-      "fail_values": [
-        "No",
-        "Critical Risk",
-        "Non-compliant"
-      ]
+      "type": "routing",
+      "description": "Routing question: routes conditional branches; excluded from scoring."
     },
     "evidence_type": "SELF_ATTESTED",
     "extraction_hint": null,
@@ -2312,7 +2240,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Operations_Tech",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "SAAS_02",
@@ -2351,7 +2279,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Operations_Tech",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "SAAS_03",
@@ -2385,7 +2313,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Legal_IP_Regulatory",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "SAAS_04",
@@ -2433,7 +2361,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Transaction_Readiness",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "SAAS_05",
@@ -2480,7 +2408,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Legal_IP_Regulatory",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "SAAS_06",
@@ -2520,7 +2448,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Legal_IP_Regulatory",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "SAAS_07",
@@ -2560,7 +2488,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Operations_Tech",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "SAAS_08",
@@ -2621,20 +2549,8 @@
     "depends_on": null,
     "risk_weight": "CRITICAL",
     "pass_rule": {
-      "type": "choice",
-      "pass_values": [
-        "Yes",
-        "Class I",
-        "Class II",
-        "None",
-        "Fully Compliant",
-        "B2B Enterprise SaaS"
-      ],
-      "fail_values": [
-        "No",
-        "Critical Risk",
-        "Non-compliant"
-      ]
+      "type": "routing",
+      "description": "Routing question: routes conditional branches; excluded from scoring."
     },
     "evidence_type": "SELF_ATTESTED",
     "extraction_hint": null,
@@ -2643,7 +2559,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Operations_Tech",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "MFG_02",
@@ -2677,7 +2593,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Human_Capital",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "MFG_03",
@@ -2698,8 +2614,8 @@
     "depends_on": null,
     "risk_weight": "HIGH",
     "pass_rule": {
-      "type": "self_attested",
-      "description": "Passed if evidence or self-attestation is provided"
+      "type": "disclosed",
+      "description": "Unscored disclosure: recorded in diligence report; excluded from score calculation."
     },
     "evidence_type": "FINANCIAL_TABLE",
     "extraction_hint": {
@@ -2710,7 +2626,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Operations_Tech",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "MFG_04",
@@ -2744,7 +2660,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Legal_IP_Regulatory",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "MFG_05",
@@ -2833,7 +2749,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Operations_Tech",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "MFG_07",
@@ -2867,7 +2783,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Legal_IP_Regulatory",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "ENG_FERC_01",
@@ -2888,8 +2804,8 @@
     "depends_on": null,
     "risk_weight": "HIGH",
     "pass_rule": {
-      "type": "self_attested",
-      "description": "Passed if evidence or self-attestation is provided"
+      "type": "disclosed",
+      "description": "Unscored disclosure: recorded in diligence report; excluded from score calculation."
     },
     "evidence_type": "SELF_ATTESTED",
     "extraction_hint": null,
@@ -2979,7 +2895,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Financial_Controls",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "ENG_IRASRC_01",
@@ -3055,7 +2971,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Financial_Controls",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "ENG_NERCCIP_01",
@@ -3097,7 +3013,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Operations_Tech",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "HLTH_ESTREG_01",
@@ -3131,7 +3047,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Establishment_Registration",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "HLTH_QMSR_01",
@@ -3204,7 +3120,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Design_Controls",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "HLTH_RISKMGMT_01",
@@ -3243,7 +3159,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Risk_Management",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "HLTH_CYBER_01",
@@ -3277,7 +3193,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Software_Gateway",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "HLTH_CYBER_02",
@@ -3324,7 +3240,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "SPDF",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "HLTH_CYBER_03",
@@ -3371,7 +3287,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "SBOM",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "HLTH_CYBER_04",
@@ -3418,7 +3334,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Threat_Modeling",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "HLTH_CYBER_05",
@@ -3466,7 +3382,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Vulnerability_Management",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "HLTH_510K_01",
@@ -3513,7 +3429,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "510k_Clearance",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "HLTH_PMA_01",
@@ -3560,7 +3476,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "PMA_Approval",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "HLTH_CLINTRIAL_01",
@@ -3602,7 +3518,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Clinical_Trials",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "MED_DEV_09",
@@ -3636,7 +3552,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Supplier_Controls",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "MED_DEV_10",
@@ -3670,7 +3586,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Production_Controls",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "MED_DEV_11",
@@ -3704,7 +3620,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "UDI_Compliance",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "MED_DEV_12",
@@ -3738,7 +3654,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "MDR_Reporting",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "MED_DEV_13",
@@ -3772,7 +3688,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "CAPA_System",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "MED_DEV_14",
@@ -3806,7 +3722,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Marketing_Claims",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "MED_DEV_15",
@@ -3840,7 +3756,7 @@
     "source_doc": "30% questions/HealthCare",
     "source_ref": "Import_Export",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "MFG_MODEL_01",
@@ -3861,20 +3777,8 @@
     "depends_on": null,
     "risk_weight": "CRITICAL",
     "pass_rule": {
-      "type": "choice",
-      "pass_values": [
-        "Yes",
-        "Class I",
-        "Class II",
-        "None",
-        "Fully Compliant",
-        "B2B Enterprise SaaS"
-      ],
-      "fail_values": [
-        "No",
-        "Critical Risk",
-        "Non-compliant"
-      ]
+      "type": "routing",
+      "description": "Routing question: routes conditional branches; excluded from scoring."
     },
     "evidence_type": "SELF_ATTESTED",
     "extraction_hint": null,
@@ -3883,7 +3787,7 @@
     "source_doc": "30% questions/Manufacturing & Industrial",
     "source_ref": "Manufacturing_Model",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "MFG_SUPPLY_01",
@@ -3917,7 +3821,7 @@
     "source_doc": "30% questions/Manufacturing & Industrial",
     "source_ref": "Supply_Chain_UFLPA",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "MFG_OSHA_01",
@@ -3951,7 +3855,7 @@
     "source_doc": "30% questions/Manufacturing & Industrial",
     "source_ref": "OSHA_Compliance",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "MFG_ENVPERM_01",
@@ -3990,7 +3894,7 @@
     "source_doc": "30% questions/Manufacturing & Industrial",
     "source_ref": "Environmental_Liability",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "MFG_PFAS_01",
@@ -4074,7 +3978,7 @@
     "source_doc": "30% questions/Manufacturing & Industrial",
     "source_ref": "ITAR_EAR",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "MFG_08",
@@ -4108,7 +4012,7 @@
     "source_doc": "30% questions/Manufacturing & Industrial",
     "source_ref": "RCRA_Waste",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "MFG_09",
@@ -4147,7 +4051,7 @@
     "source_doc": "30% questions/Manufacturing & Industrial",
     "source_ref": "ISO_9001",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "MFG_10",
@@ -4168,8 +4072,8 @@
     "depends_on": null,
     "risk_weight": "HIGH",
     "pass_rule": {
-      "type": "self_attested",
-      "description": "Passed if evidence or self-attestation is provided"
+      "type": "disclosed",
+      "description": "Unscored disclosure: recorded in diligence report; excluded from score calculation."
     },
     "evidence_type": "SELF_ATTESTED",
     "extraction_hint": null,
@@ -4178,7 +4082,7 @@
     "source_doc": "30% questions/Manufacturing & Industrial",
     "source_ref": "Labor_Relations",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "MFG_11",
@@ -4199,8 +4103,8 @@
     "depends_on": null,
     "risk_weight": "MEDIUM",
     "pass_rule": {
-      "type": "self_attested",
-      "description": "Passed if evidence or self-attestation is provided"
+      "type": "disclosed",
+      "description": "Unscored disclosure: recorded in diligence report; excluded from score calculation."
     },
     "evidence_type": "SELF_ATTESTED",
     "extraction_hint": null,
@@ -4209,7 +4113,7 @@
     "source_doc": "30% questions/Manufacturing & Industrial",
     "source_ref": "CapEx_Maintenance",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "MFG_12",
@@ -4243,7 +4147,7 @@
     "source_doc": "30% questions/Manufacturing & Industrial",
     "source_ref": "Cost_of_Goods",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "SAAS_COPYLEFT_01",
@@ -4283,7 +4187,7 @@
     "source_doc": "30% questions/Software (SaaS)",
     "source_ref": "Open_Source",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "SAAS_PRIVACY_01",
@@ -4317,7 +4221,7 @@
     "source_doc": "30% questions/Software (SaaS)",
     "source_ref": "Data_Privacy",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "SAAS_SLA_01",
@@ -4365,7 +4269,7 @@
     "source_doc": "30% questions/Software (SaaS)",
     "source_ref": "SLA_Liability",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "SAAS_API_01",
@@ -4399,7 +4303,7 @@
     "source_doc": "30% questions/Software (SaaS)",
     "source_ref": "API_Dependencies",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "SAAS_AIDATA_01",
@@ -4446,7 +4350,7 @@
     "source_doc": "30% questions/Software (SaaS)",
     "source_ref": "AI_Data_Rights",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "SAAS_BCPDR_01",
@@ -4486,7 +4390,7 @@
     "source_doc": "30% questions/Software (SaaS)",
     "source_ref": "Disaster_Recovery",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "SAAS_09",
@@ -4520,7 +4424,7 @@
     "source_doc": "30% questions/Software (SaaS)",
     "source_ref": "Data_Encryption",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "SAAS_10",
@@ -4554,7 +4458,7 @@
     "source_doc": "30% questions/Software (SaaS)",
     "source_ref": "Access_Controls",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "SAAS_11",
@@ -4588,7 +4492,7 @@
     "source_doc": "30% questions/Software (SaaS)",
     "source_ref": "IP_Ownership",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   },
   {
     "question_id": "SAAS_12",
@@ -4628,6 +4532,6 @@
     "source_doc": "30% questions/Software (SaaS)",
     "source_ref": "Cyber_Incident_Response",
     "last_verified_on": "2026-09-30",
-    "review_status": "APPROVED"
+    "review_status": "UNREVIEWED_SEED"
   }
 ]

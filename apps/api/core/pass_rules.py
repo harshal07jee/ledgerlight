@@ -16,6 +16,8 @@ class AnswerState(str, Enum):
     PARTIAL = "PARTIAL"
     FAIL = "FAIL"
     UNVERIFIED = "UNVERIFIED"
+    ROUTING = "ROUTING"
+    DISCLOSED = "DISCLOSED"
 
 
 # Patterns indicating that "No" or "False" is the passing (safe/compliant) answer
@@ -73,9 +75,8 @@ def infer_pass_rule(question_text: str, input_type: str, explicit_threshold: Opt
 
     if inp == "MULTIPLE_CHOICE":
         return {
-            "type": "choice",
-            "pass_values": ["Yes", "Class I", "Class II", "None", "Fully Compliant", "B2B Enterprise SaaS"],
-            "fail_values": ["No", "Critical Risk", "Non-compliant"]
+            "type": "routing",
+            "description": "Routing question: routes conditional branches; excluded from scoring."
         }
 
     # Threshold rules for financial / numerical metrics explicitly cited in PRD 6.5 / questions.txt
@@ -130,14 +131,15 @@ def infer_pass_rule(question_text: str, input_type: str, explicit_threshold: Opt
             "partial": {"op": "gte", "value": 50}
         }
 
-    # Default fallback for self-attested / open fields
+    # For PERCENTAGE, CURRENCY, NUMBER, and TEXT questions without an explicit numeric threshold:
+    # They are unscored disclosures (recorded and shown in report, excluded from score calculation)
     return {
-        "type": "self_attested",
-        "description": "Passed if evidence or self-attestation is provided"
+        "type": "disclosed",
+        "description": "Unscored disclosure: recorded in diligence report; excluded from score calculation."
     }
 
 
-KNOWN_RULE_TYPES = {"bool", "boolean", "choice", "threshold", "self_attested"}
+KNOWN_RULE_TYPES = {"bool", "boolean", "choice", "threshold", "self_attested", "routing", "disclosed"}
 
 
 def evaluate_pass_rule(
@@ -152,6 +154,8 @@ def evaluate_pass_rule(
     - PARTIAL (0.5)
     - FAIL (0.0)
     - UNVERIFIED: unanswered, missing, or malformed/unrecognized rule.
+    - ROUTING: routing question (conditional branches); excluded from score, counts in completeness.
+    - DISCLOSED: unscored disclosure; recorded in report, excluded from score, counts in completeness.
 
     CRITICAL SAFETY REQUIREMENT:
     An unrecognized, missing, or malformed pass_rule must NEVER return PASS.
@@ -176,7 +180,15 @@ def evaluate_pass_rule(
         res = (AnswerState.UNVERIFIED, f"Unrecognized rule_type '{raw_rule_type}'. Treated as UNVERIFIED.")
         return res if return_note else res[0]
 
-    if rule_type in ("bool", "boolean"):
+    if rule_type == "routing":
+        res = (AnswerState.ROUTING, f"Routing selection: '{answer_value}' (excluded from score calculation)")
+        return res if return_note else res[0]
+
+    elif rule_type == "disclosed":
+        res = (AnswerState.DISCLOSED, f"Recorded unscored disclosure: '{answer_value}'")
+        return res if return_note else res[0]
+
+    elif rule_type in ("bool", "boolean"):
         expected_bool = rule.get("pass_when", rule.get("value", True))
         if isinstance(answer_value, bool):
             actual_bool = answer_value
@@ -216,8 +228,8 @@ def evaluate_pass_rule(
         if ans_str in fail_vals:
             return (AnswerState.FAIL, f"Choice '{ans_str}' matches fail_values") if return_note else AnswerState.FAIL
 
-        # Unrecognized choice option fails rather than passing
-        return (AnswerState.FAIL, f"Choice '{ans_str}' not in pass/partial lists") if return_note else AnswerState.FAIL
+        # Unrecognized choice answers return UNVERIFIED, consistent with all other rule types
+        return (AnswerState.UNVERIFIED, f"Choice '{ans_str}' is unrecognized; expected one of pass/partial/fail options") if return_note else AnswerState.UNVERIFIED
 
     elif rule_type == "threshold":
         try:
@@ -257,13 +269,12 @@ def evaluate_pass_rule(
 
     elif rule_type == "self_attested":
         ans_str = str(answer_value).strip().lower()
-        if ans_str in ("yes", "true", "1", "compliant", "complete"):
+        if ans_str in ("yes", "true", "1", "compliant", "complete", "pass"):
             return (AnswerState.PASS, "Self-attested compliant") if return_note else AnswerState.PASS
-        if ans_str in ("no", "false", "0", "non-compliant", "incomplete"):
+        if ans_str in ("no", "false", "0", "non-compliant", "incomplete", "fail"):
             return (AnswerState.FAIL, "Self-attested non-compliant") if return_note else AnswerState.FAIL
-        if ans_str:
-            return (AnswerState.PASS, "Evidence / attestation text provided") if return_note else AnswerState.PASS
-        res = (AnswerState.UNVERIFIED, "Empty self-attestation")
+        # Arbitrary text, numbers, or percentages must NEVER return PASS
+        res = (AnswerState.UNVERIFIED, f"Self-attested answer '{answer_value}' is not a recognized binary affirmation/denial; treated as UNVERIFIED")
         return res if return_note else res[0]
 
     # Explicit fallback: NEVER return PASS on unrecognized rules

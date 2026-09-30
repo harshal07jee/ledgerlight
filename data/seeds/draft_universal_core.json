@@ -2372,8 +2372,8 @@
     "depends_on": null,
     "risk_weight": "MEDIUM",
     "pass_rule": {
-      "type": "self_attested",
-      "description": "Documented 12-month average NWC peg calculation"
+      "type": "disclosed",
+      "description": "Unscored disclosure: recorded in diligence report; excluded from score calculation."
     },
     "evidence_type": "FINANCIAL_TABLE",
     "extraction_hint": {
@@ -2488,8 +2488,8 @@
     "depends_on": null,
     "risk_weight": "MEDIUM",
     "pass_rule": {
-      "type": "self_attested",
-      "description": "Documented CapEx budget schedule"
+      "type": "disclosed",
+      "description": "Unscored disclosure: recorded in diligence report; excluded from score calculation."
     },
     "evidence_type": "FINANCIAL_TABLE",
     "extraction_hint": {
@@ -2887,8 +2887,8 @@
     "depends_on": null,
     "risk_weight": "HIGH",
     "pass_rule": {
-      "type": "self_attested",
-      "description": "Documented succession plan or SOPs for all C-level functions"
+      "type": "disclosed",
+      "description": "Unscored disclosure: recorded in diligence report; excluded from score calculation."
     },
     "evidence_type": "POLICY_DOC",
     "extraction_hint": {

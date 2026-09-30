@@ -299,9 +299,12 @@ def test_delta_calculation():
     ass_id = ass_res.json()["assessment"]["id"]
 
     q_res = client.get(f"/assessments/{ass_id}/questions", headers=headers)
-    questions = q_res.json()["questions"]
-    q1 = questions[0]["question_id"]
-    q2 = questions[1]["question_id"]
+    scorable_questions = [
+        q for q in q_res.json()["questions"] 
+        if (q.get("pass_rule") or {}).get("type") not in ("routing", "disclosed")
+    ]
+    q1 = scorable_questions[0]["question_id"]
+    q2 = scorable_questions[1]["question_id"]
 
     # Run 1: q1 and q2 are FAIL
     client.put(f"/assessments/{ass_id}/answers/{q1}", headers=headers, json={"value": False})

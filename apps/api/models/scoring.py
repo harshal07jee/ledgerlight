@@ -28,6 +28,8 @@ class ScoreRun(Base):
     # Dimension Breakdown & Critical items snapshot
     dimension_scores = Column(JSON, nullable=False)
     failed_critical_items = Column(JSON, nullable=False, default=list)
+    weight_origin_share = Column(JSON, nullable=True)
+    unscored_disclosures = Column(JSON, nullable=True)
     
     # Audit & Versioning (PRD 8.7)
     config_version = Column(String(50), nullable=False, default="1.0.0")
@@ -61,6 +63,7 @@ class ScoreTraceRow(Base):
     source_ref = Column(String(255), nullable=True)
     evidence_snippet = Column(Text, nullable=True)
     answer_origin = Column(String(50), nullable=False, default="manual")  # manual, auto_filled, confirmed
+    origin = Column(String(50), nullable=True)                            # self-attested, evidence-backed
     
     notes = Column(Text, nullable=True)
     is_critical_fail = Column(Boolean, nullable=False, default=False)
@@ -68,3 +71,4 @@ class ScoreTraceRow(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     score_run = relationship("ScoreRun", back_populates="trace_rows")
+

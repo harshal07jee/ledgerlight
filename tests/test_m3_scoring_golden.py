@@ -500,4 +500,93 @@ def test_api_score_and_trace_endpoints(api_test_setup):
     assert trace_data["score_run_id"] == score_data["id"]
     assert trace_data["overall_score"] == score_data["overall_score"]
     assert "trace_rows" in trace_data
+    assert "weight_origin_share" in trace_data
     assert trace_data["config_version"] in ("1.0.0", "v1.0.0")
+
+
+def test_golden_weight_origin_share_and_disclosures():
+    """
+    PRD Section 8 & Pre-M5 Requirement:
+    - Scored answers must carry origin ('self-attested' vs 'evidence-backed').
+    - Output must report share of scored weight (self-attested vs evidence-backed).
+    - Routing questions never score and never fail/pass, but count toward completeness.
+    - Disclosed questions are listed in unscored_disclosures, excluded from score.
+    """
+    from apps.api.core.scoring import compute_readiness_score
+
+    applicable_questions = [
+        # Evidence-backed scorable question (CRITICAL = 8 pts)
+        {
+            "question_id": "Q_EVID_1",
+            "dimension": "GOVERNANCE",
+            "risk_weight": "CRITICAL",
+            "evidence_type": "CONTRACT_CLAUSE",
+            "pass_rule": {"type": "bool", "pass_when": True},
+            "question_text": "Binding PIIA agreement executed?"
+        },
+        # Self-attested scorable question (HIGH = 5 pts)
+        {
+            "question_id": "Q_SELF_1",
+            "dimension": "GOVERNANCE",
+            "risk_weight": "HIGH",
+            "evidence_type": "SELF_ATTESTED",
+            "pass_rule": {"type": "bool", "pass_when": True},
+            "question_text": "Code of conduct in place?"
+        },
+        # Routing question (never scored, counts in completeness)
+        {
+            "question_id": "Q_ROUTE_1",
+            "dimension": "OPS_TECH_CYBER",
+            "risk_weight": "CRITICAL",
+            "input_type": "MULTIPLE_CHOICE",
+            "pass_rule": {"type": "routing", "description": "Routing question"},
+            "question_text": "Software delivery model?"
+        },
+        # Unscored disclosure (never scored, counts in completeness)
+        {
+            "question_id": "Q_DISC_1",
+            "dimension": "PROFIT_CASHFLOW",
+            "risk_weight": "MEDIUM",
+            "input_type": "CURRENCY",
+            "pass_rule": {"type": "disclosed", "description": "Unscored disclosure"},
+            "question_text": "Working capital peg target?"
+        }
+    ]
+
+    answers = {
+        "Q_EVID_1": {"value": True, "user_action": "manual"},
+        "Q_SELF_1": {"value": False, "user_action": "manual"},  # Deducted
+        "Q_ROUTE_1": {"value": "B2B Enterprise SaaS"},
+        "Q_DISC_1": {"value": "$1,500,000", "notes": "Historical average"}
+    }
+
+    company_profile = {"transaction_type": "VC_GROWTH_FINANCING"}
+
+    res = compute_readiness_score(applicable_questions, answers, company_profile)
+
+    # 1. Completeness: all 4 are answered
+    assert res["completeness"]["total_applicable"] == 4
+    assert res["completeness"]["answered_count"] == 4
+    assert res["completeness"]["completeness_pct"] == 100.0
+
+    # 2. Weight origin breakdown:
+    # Q_EVID_1: 8.0 pts evidence-backed
+    # Q_SELF_1: 5.0 pts self-attested
+    # Total scored weight = 13.0 pts
+    origin_share = res["weight_origin_share"]
+    assert origin_share["evidence_backed_weight"] == 8.0
+    assert origin_share["self_attested_weight"] == 5.0
+    assert origin_share["total_scored_weight"] == 13.0
+    assert origin_share["evidence_backed_share_pct"] == 61.5  # 8 / 13 * 100
+    assert origin_share["self_attested_share_pct"] == 38.5    # 5 / 13 * 100
+
+    # 3. Disclosures: Q_DISC_1 is collected in unscored_disclosures
+    assert len(res["unscored_disclosures"]) == 1
+    assert res["unscored_disclosures"][0]["question_id"] == "Q_DISC_1"
+    assert res["unscored_disclosures"][0]["value"] == "$1,500,000"
+
+    # 4. Deduction trace carries origin
+    assert len(res["trace_rows"]) == 1
+    assert res["trace_rows"][0]["question_id"] == "Q_SELF_1"
+    assert res["trace_rows"][0]["origin"] == "self-attested"
+

@@ -141,8 +141,22 @@ def describe_expected_rule(rule: Optional[Dict[str, Any]]) -> str:
         return f"{sym} {val} ({field})"
     elif rule_type == "self_attested":
         return "Self-attested compliant response"
+    elif rule_type == "routing":
+        return "Routing selection (excluded from scoring)"
+    elif rule_type == "disclosed":
+        return "Unscored disclosure (recorded in report)"
 
     return "Compliant response"
+
+
+def is_scorable_question(q: Dict[str, Any]) -> bool:
+    """Returns True if a question is subject to scoring (not routing or disclosed)."""
+    rule = q.get("pass_rule")
+    if isinstance(rule, dict):
+        r_type = str(rule.get("type", "")).strip().lower()
+        if r_type in ("routing", "disclosed"):
+            return False
+    return True
 
 
 def compute_readiness_score(
@@ -168,6 +182,8 @@ def compute_readiness_score(
     - dimension_scores: Dict of per-dimension metrics & scores
     - completeness: Dict of total, answered, completeness_pct, is_provisional
     - trace_rows: List of deduction rows explaining points lost
+    - weight_origin_share: Dict of self-attested vs evidence-backed weight breakdown
+    - unscored_disclosures: List of disclosed question responses
     - config_version: str
     - question_bank_version: str
     """
@@ -189,6 +205,9 @@ def compute_readiness_score(
     dim_accumulators: Dict[str, Dict[str, Any]] = {}
     failed_critical_items: List[Dict[str, Any]] = []
     trace_rows: List[Dict[str, Any]] = []
+    unscored_disclosures: List[Dict[str, Any]] = []
+    self_attested_weight_sum: float = 0.0
+    evidence_backed_weight_sum: float = 0.0
 
     total_applicable = len(applicable_questions)
     answered_applicable = 0
@@ -233,9 +252,36 @@ def compute_readiness_score(
             # Unanswered / unverified: skip from dimension score math
             continue
 
-        # Answered applicable question
+        # Handle ROUTING and DISCLOSED questions:
+        # Never scored, never PASS/FAIL, but count toward completeness.
+        if state in (AnswerState.ROUTING, AnswerState.DISCLOSED):
+            answered_applicable += 1
+            if state == AnswerState.DISCLOSED:
+                unscored_disclosures.append({
+                    "question_id": qid,
+                    "question_text": q.get("question_text", ""),
+                    "dimension": dim,
+                    "input_type": q.get("input_type", ""),
+                    "value": ans_val,
+                    "notes": notes or f"Disclosed: {ans_val}"
+                })
+            continue
+
+        # Answered applicable scored question
         answered_applicable += 1
         dim_accumulators[dim]["answered_count"] += 1
+
+        # Track weight origin (self-attested vs evidence-backed)
+        ev_type = str(q.get("evidence_type", "SELF_ATTESTED")).upper()
+        rule_type = ""
+        if isinstance(q.get("pass_rule"), dict):
+            rule_type = str(q.get("pass_rule", {}).get("type", "")).lower()
+        is_self_attested = (ev_type == "SELF_ATTESTED" or rule_type == "self_attested")
+        origin = "self-attested" if is_self_attested else "evidence-backed"
+        if is_self_attested:
+            self_attested_weight_sum += w_q
+        else:
+            evidence_backed_weight_sum += w_q
 
         if state == AnswerState.PASS:
             s_q = 1.0
@@ -258,7 +304,8 @@ def compute_readiness_score(
                 "risk_weight": risk_weight_str,
                 "points_lost": points_lost,
                 "source_doc": q.get("source_doc"),
-                "source_ref": q.get("source_ref")
+                "source_ref": q.get("source_ref"),
+                "origin": origin
             })
 
         # Deduction trace row (PRD Section 8.6: for every deduction the trace stores details)
@@ -277,6 +324,8 @@ def compute_readiness_score(
                 "source_ref": q.get("source_ref") or "",
                 "evidence_snippet": evidence_snippet or "",
                 "answer_origin": user_action or "manual",
+                "origin": origin,
+                "evidence_type": ev_type,
                 "notes": notes or "",
                 "is_critical_fail": is_critical_fail
             })
@@ -346,28 +395,34 @@ def compute_readiness_score(
 
     for dim, acc in dim_accumulators.items():
         txn_dim_weight = float(active_txn_matrix.get(dim, 10.0))
+
+        # Only scorable questions in this dimension
+        scorable_qs = [
+            q for q in applicable_questions
+            if q.get("dimension", "OTHER") == dim and is_scorable_question(q)
+        ]
+
         tot_applicable_wt = sum(
             float(severity_weights.get((q.get("risk_weight") or "MEDIUM").upper(), 3.0))
-            for q in applicable_questions if q.get("dimension", "OTHER") == dim
+            for q in scorable_qs
         )
 
         unverified_wt = sum(
             float(severity_weights.get((q.get("risk_weight") or "MEDIUM").upper(), 3.0))
-            for q in applicable_questions
-            if q.get("dimension", "OTHER") == dim and (
+            for q in scorable_qs
+            if (
                 evaluate_pass_rule(q.get("pass_rule"), answers.get(q.get("question_id"), {}).get("value") if isinstance(answers.get(q.get("question_id")), dict) else answers.get(q.get("question_id"))) == AnswerState.UNVERIFIED
                 or (answers.get(q.get("question_id"), {}).get("value") if isinstance(answers.get(q.get("question_id")), dict) else answers.get(q.get("question_id"))) is None
                 or (answers.get(q.get("question_id"), {}).get("value") if isinstance(answers.get(q.get("question_id")), dict) else answers.get(q.get("question_id"))) == ""
             )
         )
 
-        # Check if any unverified question in this dimension is CRITICAL
-        for q in applicable_questions:
-            if q.get("dimension", "OTHER") == dim:
-                ans_v = answers.get(q.get("question_id"), {}).get("value") if isinstance(answers.get(q.get("question_id")), dict) else answers.get(q.get("question_id"))
-                if ans_v is None or ans_v == "" or evaluate_pass_rule(q.get("pass_rule"), ans_v) == AnswerState.UNVERIFIED:
-                    if (q.get("risk_weight") or "").upper() == "CRITICAL":
-                        has_unverified_critical = True
+        # Check if any unverified scorable question in this dimension is CRITICAL
+        for q in scorable_qs:
+            ans_v = answers.get(q.get("question_id"), {}).get("value") if isinstance(answers.get(q.get("question_id")), dict) else answers.get(q.get("question_id"))
+            if ans_v is None or ans_v == "" or evaluate_pass_rule(q.get("pass_rule"), ans_v) == AnswerState.UNVERIFIED:
+                if (q.get("risk_weight") or "").upper() == "CRITICAL":
+                    has_unverified_critical = True
 
         if tot_applicable_wt > 0.0:
             best_earned_wt = acc["earned_weight_sum"] + (unverified_wt * 1.0)
@@ -394,7 +449,26 @@ def compute_readiness_score(
     worst_has_crit = has_critical_fail or has_unverified_critical
     worst_case_score = min(unconstrained_worst, critical_fail_cap) if worst_has_crit else unconstrained_worst
 
-    # 6. Completeness & Provisional Flag (PRD Section 8.5)
+    # 6. Weight Origin Share (Self-attested vs Evidence-backed)
+    total_scored_weight = self_attested_weight_sum + evidence_backed_weight_sum
+    if total_scored_weight > 0.0:
+        self_attested_share_pct = round((self_attested_weight_sum / total_scored_weight) * 100.0, 1)
+        evidence_backed_share_pct = round((evidence_backed_weight_sum / total_scored_weight) * 100.0, 1)
+    else:
+        self_attested_share_pct = 0.0
+        evidence_backed_share_pct = 0.0
+
+    weight_origin_share = {
+        "self_attested_weight": round(self_attested_weight_sum, 2),
+        "evidence_backed_weight": round(evidence_backed_weight_sum, 2),
+        "total_scored_weight": round(total_scored_weight, 2),
+        "self_attested_share_pct": self_attested_share_pct,
+        "evidence_backed_share_pct": evidence_backed_share_pct,
+        "self_attested_pct": self_attested_share_pct,
+        "evidence_backed_pct": evidence_backed_share_pct
+    }
+
+    # 7. Completeness & Provisional Flag (PRD Section 8.5)
     completeness_pct = round((answered_applicable / total_applicable * 100.0), 1) if total_applicable > 0 else 0.0
     is_provisional = completeness_pct < provisional_threshold
 
@@ -416,6 +490,8 @@ def compute_readiness_score(
             "is_provisional": is_provisional,
             "provisional_threshold_pct": provisional_threshold
         },
+        "weight_origin_share": weight_origin_share,
+        "unscored_disclosures": unscored_disclosures,
         "trace_rows": trace_rows,
         "total_deductions": len(trace_rows),
         "total_points_lost": round(sum(r["points_lost"] for r in trace_rows), 2),
@@ -423,3 +499,4 @@ def compute_readiness_score(
         "config_version": config_version,
         "question_bank_version": qb_version
     }
+

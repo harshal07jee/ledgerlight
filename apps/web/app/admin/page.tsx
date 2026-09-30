@@ -17,6 +17,7 @@ interface QuestionSummary {
   source_ref: string;
   remediation_horizon_days: number;
   last_verified_on: string | null;
+  reviewer_name?: string | null;
 }
 
 interface CoverageMetrics {

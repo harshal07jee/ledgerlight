@@ -266,6 +266,31 @@ def generate_assessment_pdf(
     ]))
     story.append(t_summary)
 
+    # Scored weight origin breakdown (PRD Section 8 & Pre-M5 requirement)
+    origin_share = score_data.get("weight_origin_share") or {}
+    ev_pct = origin_share.get("evidence_backed_share_pct", origin_share.get("evidence_backed_pct", 0.0))
+    sa_pct = origin_share.get("self_attested_share_pct", origin_share.get("self_attested_pct", 0.0))
+    ev_wt = origin_share.get("evidence_backed_weight", 0.0)
+    sa_wt = origin_share.get("self_attested_weight", 0.0)
+
+    t_origin = Table([
+        [
+            Paragraph(
+                f"<b>Scored Weight Origin:</b> Evidence-Backed <b>{ev_pct}%</b> ({ev_wt} pts) &bull; "
+                f"Self-Attested <b>{sa_pct}%</b> ({sa_wt} pts)",
+                style_muted
+            )
+        ]
+    ], colWidths=[500])
+    t_origin.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), COLOR_PAPER),
+        ("BOX", (0, 0), (-1, -1), 0.5, COLOR_BORDER),
+        ("PADDING", (0, 0), (-1, -1), 6),
+        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+    ]))
+    story.append(Spacer(1, 6))
+    story.append(t_origin)
+
     story.append(Spacer(1, 15))
 
     # Critical alert banner
@@ -363,23 +388,24 @@ def generate_assessment_pdf(
     story.append(Paragraph("Every point deducted is traced back to a specific requirement, rule, and citation.", style_muted))
     story.append(HRFlowable(width="100%", thickness=1, color=COLOR_ACCENT, spaceAfter=15))
 
-    trace_headers = ["ID", "Audit Requirement", "Answer", "Expected Rule", "Loss", "Source Citation"]
+    trace_headers = ["ID", "Audit Requirement", "Answer", "Expected Rule", "Loss", "Origin & Citation"]
     trace_table_data = [trace_headers]
 
     for r in trace_rows[:40]:  # Cap at top 40 deductions for PDF readability
+        origin_label = r.get("origin", "self-attested")
         trace_table_data.append([
             r.get("question_id", ""),
             Paragraph(r.get("question_text", ""), style_body),
             str(r.get("user_answer", "No")),
             Paragraph(r.get("expected_rule", "Pass"), style_muted),
             f"-{r.get('points_lost', 0)}",
-            Paragraph(f"{r.get('source_doc', '')} {r.get('source_ref', '')}", style_muted)
+            Paragraph(f"<b>[{origin_label}]</b><br/>{r.get('source_doc', '')} {r.get('source_ref', '')}", style_muted)
         ])
 
     if len(trace_table_data) == 1:
         trace_table_data.append(["—", Paragraph("No deductions recorded. All applicable questions passed.", style_body), "—", "—", "0", "—"])
 
-    t_trace = Table(trace_table_data, colWidths=[65, 185, 45, 95, 40, 70])
+    t_trace = Table(trace_table_data, colWidths=[65, 175, 45, 95, 40, 80])
     t_trace.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), COLOR_PAPER),
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
@@ -391,12 +417,43 @@ def generate_assessment_pdf(
     ]))
     story.append(t_trace)
 
+    # =========================================================================
+    # 5. UNSCORED DISCLOSURES (PRD Section 8 & Pre-M5 Requirement)
+    # =========================================================================
+    unscored_disclosures = score_data.get("unscored_disclosures") or []
+    if unscored_disclosures:
+        story.append(PageBreak())
+        story.append(Paragraph("4. Unscored Disclosures", style_h1))
+        story.append(Paragraph("Recorded qualitative and operational disclosures for transactional diligence. Excluded from quantitative scoring.", style_muted))
+        story.append(HRFlowable(width="100%", thickness=1, color=COLOR_ACCENT, spaceAfter=15))
+
+        disc_headers = ["ID", "Audit Item", "Dimension", "Disclosed Response"]
+        disc_rows = [disc_headers]
+        for d in unscored_disclosures:
+            disc_rows.append([
+                d.get("question_id", ""),
+                Paragraph(d.get("question_text", ""), style_body),
+                d.get("dimension", ""),
+                Paragraph(f"<b>{d.get('value', '—')}</b><br/><font color='#5F6470'>{d.get('notes', '')}</font>", style_body)
+            ])
+
+        t_disc = Table(disc_rows, colWidths=[70, 210, 80, 140])
+        t_disc.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), COLOR_PAPER),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, -1), 7),
+            ("BOX", (0, 0), (-1, -1), 0.5, COLOR_BORDER),
+            ("INNERGRID", (0, 0), (-1, -1), 0.5, COLOR_BORDER),
+            ("PADDING", (0, 0), (-1, -1), 3),
+        ]))
+        story.append(t_disc)
+
     story.append(PageBreak())
 
     # =========================================================================
-    # 5. REMEDIATION ROADMAP (30/60/90/180-DAY HORIZONS)
+    # 6. REMEDIATION ROADMAP (30/60/90/180-DAY HORIZONS)
     # =========================================================================
-    story.append(Paragraph("4. Diligence Remediation Roadmap", style_h1))
+    story.append(Paragraph("5. Diligence Remediation Roadmap", style_h1))
     story.append(Paragraph("Actionable remediation tasks organized by execution horizon and priority score (weight &times; points lost).", style_muted))
     story.append(HRFlowable(width="100%", thickness=1, color=COLOR_ACCENT, spaceAfter=15))
 
@@ -433,9 +490,9 @@ def generate_assessment_pdf(
     story.append(PageBreak())
 
     # =========================================================================
-    # 6. METHODOLOGY & AUDIT GOVERNANCE PAGE
+    # 7. METHODOLOGY & AUDIT GOVERNANCE PAGE
     # =========================================================================
-    story.append(Paragraph("5. Methodology & Audit Governance", style_h1))
+    story.append(Paragraph("6. Methodology & Audit Governance", style_h1))
     story.append(HRFlowable(width="100%", thickness=1, color=COLOR_ACCENT, spaceAfter=15))
 
     methodology_p = (
@@ -457,6 +514,7 @@ def generate_assessment_pdf(
         ["Provisional Completeness Threshold", "60.0%"],
         ["Severity Weights", "CRITICAL=8, HIGH=5, MEDIUM=3, LOW=1"],
         ["Partial Compliance Multiplier", "0.5 (50%)"],
+        ["Scored Weight Origin Share", f"Evidence-Backed: {ev_pct}% | Self-Attested: {sa_pct}%"],
         ["Transaction Weight Matrix Status", "[ASSUMPTION] UNVALIDATED"]
     ]
     t_ver = Table(version_table_data, colWidths=[200, 300])

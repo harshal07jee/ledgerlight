@@ -959,6 +959,8 @@ def calculate_assessment_score(
         failed_critical_count=score_result["failed_critical_count"],
         dimension_scores=score_result["dimension_scores"],
         failed_critical_items=score_result["failed_critical_items"],
+        weight_origin_share=score_result.get("weight_origin_share"),
+        unscored_disclosures=score_result.get("unscored_disclosures"),
         config_version=score_result["config_version"],
         question_bank_version=score_result["question_bank_version"]
     )
@@ -982,6 +984,7 @@ def calculate_assessment_score(
             source_ref=row["source_ref"],
             evidence_snippet=row["evidence_snippet"],
             answer_origin=row["answer_origin"],
+            origin=row.get("origin", "self-attested"),
             notes=row["notes"],
             is_critical_fail=row["is_critical_fail"]
         )
@@ -1041,6 +1044,7 @@ def get_assessment_trace(
             "source_ref": r.source_ref,
             "evidence_snippet": r.evidence_snippet,
             "answer_origin": r.answer_origin,
+            "origin": r.origin or "self-attested",
             "notes": r.notes,
             "is_critical_fail": r.is_critical_fail
         }
@@ -1062,6 +1066,8 @@ def get_assessment_trace(
             "is_provisional": latest_run.is_provisional,
         },
         "dimension_scores": latest_run.dimension_scores,
+        "weight_origin_share": latest_run.weight_origin_share or {},
+        "unscored_disclosures": latest_run.unscored_disclosures or [],
         "trace_rows": trace_rows,
         "total_deductions": len(trace_rows),
         "total_points_lost": round(sum(r["points_lost"] for r in trace_rows), 2),
@@ -1441,6 +1447,8 @@ def get_assessment_pdf_report(
         "critical_cap_applied": latest_run.critical_cap_applied,
         "failed_critical_items": latest_run.failed_critical_items or [],
         "dimension_scores": latest_run.dimension_scores or {},
+        "weight_origin_share": latest_run.weight_origin_share or {},
+        "unscored_disclosures": latest_run.unscored_disclosures or [],
         "config_version": latest_run.config_version,
         "question_bank_version": latest_run.question_bank_version
     }

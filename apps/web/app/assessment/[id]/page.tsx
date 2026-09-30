@@ -35,6 +35,7 @@ interface QuestionItem {
   current_answer?: any;
   notes?: string;
   updated_at?: string;
+  review_status?: string;
 }
 
 interface DimensionGroup {
