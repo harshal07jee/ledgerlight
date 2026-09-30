@@ -42,7 +42,12 @@ yarn-error.log*
 # Environment & Local DB
 .env*.local
 .env
+*.db
 *.db-journal
+ledgerlight.db
+
+# Third-party raw documents
+data/ASP/
 
 # IDE & OS
 .vscode/
