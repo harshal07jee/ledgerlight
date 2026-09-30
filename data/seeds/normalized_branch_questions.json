@@ -1,0 +1,4633 @@
+[
+  {
+    "question_id": "ENERGY_01",
+    "scope": "BRANCH",
+    "industry": "ENERGY",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "CleanTech_Model",
+    "question_text": "What is the primary operational sub-sector (Solar & Wind Generation, Battery & Energy Storage, or Grid Infrastructure / OT)?",
+    "input_type": "MULTIPLE_CHOICE",
+    "options": null,
+    "depends_on": null,
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "choice",
+      "pass_values": [
+        "Yes",
+        "Class I",
+        "Class II",
+        "None",
+        "Fully Compliant",
+        "B2B Enterprise SaaS"
+      ],
+      "fail_values": [
+        "No",
+        "Critical Risk",
+        "Non-compliant"
+      ]
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Determine the CleanTech sub-sector to trigger specific federal subsidy, grid compliance, and supply chain pathways.",
+    "remediation_horizon_days": 30,
+    "source_doc": "30% questions/Energy & CleanTech",
+    "source_ref": "CleanTech_Model",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "ENERGY_02",
+    "scope": "BRANCH",
+    "industry": "ENERGY",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "FIN_CONTROLS",
+    "sub_category": "IRA_PWA",
+    "question_text": "Does the project strictly comply with the IRA Prevailing Wage and Apprenticeship (PWA) requirements to secure the 5x tax credit multiplier?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Audit EPC (Engineering, Procurement, and Construction) contracts to mandate certified payroll reporting and PWA compliance.",
+    "remediation_horizon_days": 60,
+    "source_doc": "30% questions/Energy & CleanTech",
+    "source_ref": "IRA_PWA",
+    "last_verified_on": null,
+    "review_status": "DRAFT"
+  },
+  {
+    "question_id": "ENERGY_03",
+    "scope": "BRANCH",
+    "industry": "ENERGY",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "FEOC_Compliance",
+    "question_text": "Are all tier-one suppliers and equity sponsors screened to ensure no Prohibited Foreign Entities (PFEs) or Foreign Entities of Concern (FEOC) are involved, preventing total credit disqualification?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": false
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Require written FEOC representation covering ownership to the ultimate parent and execute a Material Assistance Cost Ratio (MACR) audit.",
+    "remediation_horizon_days": 30,
+    "source_doc": "30% questions/Energy & CleanTech",
+    "source_ref": "FEOC_Compliance",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "ENERGY_04",
+    "scope": "BRANCH",
+    "industry": "ENERGY",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "FIN_CONTROLS",
+    "sub_category": "Domestic_Content",
+    "question_text": "Can the project provide audit-ready supplier certifications proving it meets the IRA Domestic Content Bonus thresholds (e.g., 100% US steel/iron and 40%+ manufactured products)?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Secure formal Domestic Content Certification Statements (via Form 8835/3468) from all component manufacturers.",
+    "remediation_horizon_days": 90,
+    "source_doc": "30% questions/Energy & CleanTech",
+    "source_ref": "Domestic_Content",
+    "last_verified_on": null,
+    "review_status": "DRAFT"
+  },
+  {
+    "question_id": "ENERGY_05",
+    "scope": "BRANCH",
+    "industry": "ENERGY",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "FERC_Interconnection",
+    "question_text": "Under FERC Order 2023, has the project secured 100% site control and submitted the required commercial readiness deposits to enter the interconnection queue?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": {
+      "all": [
+        {
+          "question_id": "ENERGY_01",
+          "op": "eq",
+          "value": "Solar & Wind Generation"
+        }
+      ]
+    },
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Execute binding site leases and submit financial deposits to prevent the project from being dropped from the regional ISO/RTO queue.",
+    "remediation_horizon_days": 180,
+    "source_doc": "30% questions/Energy & CleanTech",
+    "source_ref": "FERC_Interconnection",
+    "last_verified_on": null,
+    "review_status": "DRAFT"
+  },
+  {
+    "question_id": "ENERGY_06",
+    "scope": "BRANCH",
+    "industry": "ENERGY",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "FIN_CONTROLS",
+    "sub_category": "Offtake_Agreements",
+    "question_text": "Are binding long-term Power Purchase Agreements (PPAs) or virtual PPAs (vPPAs) executed with investment-grade corporate or utility off-takers?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": {
+      "all": [
+        {
+          "question_id": "ENERGY_01",
+          "op": "eq",
+          "value": "Solar & Wind Generation"
+        }
+      ]
+    },
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "CONTRACT_CLAUSE",
+    "extraction_hint": {
+      "cuad_category": "Revenue/Profit Sharing",
+      "doc_types": [
+        "ppa_agreement"
+      ]
+    },
+    "remediation_action": "Secure long-term off-take agreements with defined strike prices to stabilize projected cash flows and bankability.",
+    "remediation_horizon_days": 90,
+    "source_doc": "30% questions/Energy & CleanTech",
+    "source_ref": "Offtake_Agreements",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "ENERGY_07",
+    "scope": "BRANCH",
+    "industry": "ENERGY",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "NEPA_Permitting",
+    "question_text": "Has a comprehensive Environmental Impact Statement (EIS) been completed in compliance with NEPA, avoiding critical habitat and endangered species overlap?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": {
+      "all": [
+        {
+          "question_id": "ENERGY_01",
+          "op": "eq",
+          "value": "Solar & Wind Generation"
+        }
+      ]
+    },
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Commission third-party environmental and biological surveys to clear state and federal permitting bottlenecks.",
+    "remediation_horizon_days": 180,
+    "source_doc": "30% questions/Energy & CleanTech",
+    "source_ref": "NEPA_Permitting",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "ENERGY_08",
+    "scope": "BRANCH",
+    "industry": "ENERGY",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "Critical_Minerals",
+    "question_text": "Are critical battery minerals (e.g., lithium, cobalt) sourced domestically or from US Free-Trade Agreement (FTA) countries to maintain Section 45X and Section 30D eligibility?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": {
+      "all": [
+        {
+          "question_id": "ENERGY_01",
+          "op": "eq",
+          "value": "Battery & Energy Storage"
+        }
+      ]
+    },
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Restructure supply chain procurement to eliminate sourcing from prohibited covered nations and secure FTA certificates of origin.",
+    "remediation_horizon_days": 180,
+    "source_doc": "30% questions/Energy & CleanTech",
+    "source_ref": "Critical_Minerals",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "ENERGY_09",
+    "scope": "BRANCH",
+    "industry": "ENERGY",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "Battery_Degradation",
+    "question_text": "Does the financial model include a funded performance warranty reserve accounting for long-term cell degradation and HVAC augmentation costs?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": {
+      "all": [
+        {
+          "question_id": "ENERGY_01",
+          "op": "eq",
+          "value": "Battery & Energy Storage"
+        }
+      ]
+    },
+    "risk_weight": "MEDIUM",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": false
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Establish a dedicated cash reserve explicitly modeled against the projected degradation curve of deployed battery assets.",
+    "remediation_horizon_days": 60,
+    "source_doc": "30% questions/Energy & CleanTech",
+    "source_ref": "Battery_Degradation",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "ENERGY_10",
+    "scope": "BRANCH",
+    "industry": "ENERGY",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "NERC_CIP",
+    "question_text": "Is the Operational Technology (OT) network strictly air-gapped and segmented from the IT network in compliance with NERC CIP (Critical Infrastructure Protection) standards?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": {
+      "all": [
+        {
+          "question_id": "ENERGY_01",
+          "op": "eq",
+          "value": "Grid Infrastructure / OT"
+        }
+      ]
+    },
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Execute an architecture overhaul to establish hardware firewalls and strict segmentation between IT enterprise systems and physical grid OT.",
+    "remediation_horizon_days": 60,
+    "source_doc": "30% questions/Energy & CleanTech",
+    "source_ref": "NERC_CIP",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "ENERGY_11",
+    "scope": "BRANCH",
+    "industry": "ENERGY",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "Asset_Retirement",
+    "question_text": "Has a fully funded Decommissioning Plan been established to cover end-of-life Asset Retirement Obligations (AROs), including solar panel recycling and site restoration?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Establish a surety bond or letter of credit specifically earmarked for end-of-life facility decommissioning.",
+    "remediation_horizon_days": 90,
+    "source_doc": "30% questions/Energy & CleanTech",
+    "source_ref": "Asset_Retirement",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "FIN_TECH_01",
+    "scope": "BRANCH",
+    "industry": "FINTECH",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "Regulatory_Classification",
+    "question_text": "What is the primary FinTech regulatory classification (Lending, Payments/MSB, Digital Assets, or WealthTech/RIA)?",
+    "input_type": "MULTIPLE_CHOICE",
+    "options": null,
+    "depends_on": null,
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "choice",
+      "pass_values": [
+        "Yes",
+        "Class I",
+        "Class II",
+        "None",
+        "Fully Compliant",
+        "B2B Enterprise SaaS"
+      ],
+      "fail_values": [
+        "No",
+        "Critical Risk",
+        "Non-compliant"
+      ]
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Determine classification to route conditional regulatory pathways.",
+    "remediation_horizon_days": 30,
+    "source_doc": "30% questions/FinTech",
+    "source_ref": "Regulatory_Classification",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "FIN_TECH_02",
+    "scope": "BRANCH",
+    "industry": "FINTECH",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "AML_KYC",
+    "question_text": "Has a formalized Anti-Money Laundering (AML) and Customer Identification Program (CIP/KYC) been established under the Bank Secrecy Act (BSA)?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Appoint a designated BSA/AML Compliance Officer and integrate certified KYC/KYB identity verification.",
+    "remediation_horizon_days": 30,
+    "source_doc": "30% questions/FinTech",
+    "source_ref": "AML_KYC",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "FIN_TECH_03",
+    "scope": "BRANCH",
+    "industry": "FINTECH",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "OFAC_Compliance",
+    "question_text": "Are all transactions and onboarded users actively screened against the OFAC Specially Designated Nationals (SDN) list?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Integrate real-time OFAC screening APIs and establish an alert adjudication procedure.",
+    "remediation_horizon_days": 30,
+    "source_doc": "30% questions/FinTech",
+    "source_ref": "OFAC_Compliance",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "FIN_TECH_04",
+    "scope": "BRANCH",
+    "industry": "FINTECH",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "MSB_Licensing",
+    "question_text": "Is the company registered as a Money Services Business (MSB) with FinCEN and actively maintaining state Money Transmitter Licenses (MTLs)?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": {
+      "all": [
+        {
+          "question_id": "FIN_SECTOR_01",
+          "op": "eq",
+          "value": "Payments/MSB"
+        }
+      ]
+    },
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "File FinCEN MSB registration and initiate state-by-state MTL applications or secure a bank sponsor.",
+    "remediation_horizon_days": 180,
+    "source_doc": "30% questions/FinTech",
+    "source_ref": "MSB_Licensing",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "FIN_TECH_05",
+    "scope": "BRANCH",
+    "industry": "FINTECH",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "Consumer_Lending",
+    "question_text": "Are all credit and loan products fully compliant with the Truth in Lending Act (TILA), ECOA, and state-specific usury rate caps?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": {
+      "all": [
+        {
+          "question_id": "FIN_SECTOR_01",
+          "op": "eq",
+          "value": "Lending"
+        }
+      ]
+    },
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Audit loan origination flow, APR calculations, and adverse action notices via external regulatory counsel.",
+    "remediation_horizon_days": 60,
+    "source_doc": "30% questions/FinTech",
+    "source_ref": "Consumer_Lending",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "FIN_TECH_06",
+    "scope": "BRANCH",
+    "industry": "FINTECH",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "Credit_Reporting",
+    "question_text": "If utilizing consumer data for credit decisions, is the company compliant with the Fair Credit Reporting Act (FCRA)?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": {
+      "all": [
+        {
+          "question_id": "FIN_SECTOR_01",
+          "op": "eq",
+          "value": "Lending"
+        }
+      ]
+    },
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Ensure strict FCRA compliance for permissible purpose data access and dispute resolution workflows.",
+    "remediation_horizon_days": 60,
+    "source_doc": "30% questions/FinTech",
+    "source_ref": "Credit_Reporting",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "FIN_TECH_07",
+    "scope": "BRANCH",
+    "industry": "FINTECH",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "Digital_Assets",
+    "question_text": "Does the company hold necessary virtual currency licenses (e.g., NY BitLicense) and conduct independent Proof of Reserves (PoR) audits?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": {
+      "all": [
+        {
+          "question_id": "FIN_SECTOR_01",
+          "op": "eq",
+          "value": "Digital Assets"
+        }
+      ]
+    },
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "CERTIFICATE_OR_REPORT",
+    "extraction_hint": {
+      "standard": "NY BitLicense",
+      "doc_types": [
+        "license_document"
+      ]
+    },
+    "remediation_action": "Secure state virtual currency licenses and commission a cryptographically verifiable PoR audit.",
+    "remediation_horizon_days": 90,
+    "source_doc": "30% questions/FinTech",
+    "source_ref": "Digital_Assets",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "FIN_TECH_08",
+    "scope": "BRANCH",
+    "industry": "FINTECH",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "RIA_Compliance",
+    "question_text": "Is the firm registered as a Registered Investment Adviser (RIA) with the SEC or state regulators, maintaining an updated Form ADV?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": {
+      "all": [
+        {
+          "question_id": "FIN_SECTOR_01",
+          "op": "eq",
+          "value": "WealthTech/RIA"
+        }
+      ]
+    },
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "File Form ADV and implement a compliance manual aligned with the Investment Advisers Act of 1940.",
+    "remediation_horizon_days": 60,
+    "source_doc": "30% questions/FinTech",
+    "source_ref": "RIA_Compliance",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "FIN_TECH_09",
+    "scope": "BRANCH",
+    "industry": "FINTECH",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "FIN_CONTROLS",
+    "sub_category": "Funds_Safeguarding",
+    "question_text": "Are customer funds strictly segregated from corporate operating funds and held in FDIC-insured FBO (For Benefit Of) accounts?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "FINANCIAL_TABLE",
+    "extraction_hint": {
+      "table_type": "reconciliation_schedule"
+    },
+    "remediation_action": "Establish strict segregation of funds and automated daily ledger reconciliation for FBO accounts.",
+    "remediation_horizon_days": 30,
+    "source_doc": "30% questions/FinTech",
+    "source_ref": "Funds_Safeguarding",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "FIN_TECH_10",
+    "scope": "BRANCH",
+    "industry": "FINTECH",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "FIN_CONTROLS",
+    "sub_category": "Bank_Partnerships",
+    "question_text": "For bank-sponsored models, are active BaaS (Banking-as-a-Service) agreements in place with distinct oversight and compliance SLAs?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "CONTRACT_CLAUSE",
+    "extraction_hint": {
+      "cuad_category": "Termination for Convenience",
+      "doc_types": [
+        "customer_contract",
+        "sla"
+      ]
+    },
+    "remediation_action": "Execute BaaS sponsor agreements clarifying third-party risk management and FDIC pass-through applicability.",
+    "remediation_horizon_days": 60,
+    "source_doc": "30% questions/FinTech",
+    "source_ref": "Bank_Partnerships",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "FIN_TECH_11",
+    "scope": "BRANCH",
+    "industry": "FINTECH",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "PCI_DSS",
+    "question_text": "Is the company fully PCI-DSS v4.0 compliant for processing, storing, or transmitting cardholder data?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Initiate PCI-DSS v4.0 readiness assessment and implement point-to-point encryption (P2PE).",
+    "remediation_horizon_days": 90,
+    "source_doc": "30% questions/FinTech",
+    "source_ref": "PCI_DSS",
+    "last_verified_on": null,
+    "review_status": "DRAFT"
+  },
+  {
+    "question_id": "FIN_TECH_12",
+    "scope": "BRANCH",
+    "industry": "FINTECH",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "GLBA_Compliance",
+    "question_text": "Is the platform compliant with the Gramm-Leach-Bliley Act (GLBA) Safeguards Rule for protecting Nonpublic Personal Information (NPI)?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Appoint a Qualified Individual, conduct a GLBA risk assessment, and encrypt all NPI at rest and in transit.",
+    "remediation_horizon_days": 90,
+    "source_doc": "30% questions/FinTech",
+    "source_ref": "GLBA_Compliance",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "FIN_TECH_13",
+    "scope": "BRANCH",
+    "industry": "FINTECH",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "Open_Banking",
+    "question_text": "Is the platform architected to comply with the CFPB Section 1033 Personal Financial Data Rights rule, avoiding credential-based screen scraping?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "MEDIUM",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Migrate integrations to secure, tokenized APIs for consumer-permissioned data sharing.",
+    "remediation_horizon_days": 180,
+    "source_doc": "30% questions/FinTech",
+    "source_ref": "Open_Banking",
+    "last_verified_on": null,
+    "review_status": "DRAFT"
+  },
+  {
+    "question_id": "FIN_TECH_14",
+    "scope": "BRANCH",
+    "industry": "FINTECH",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "Fraud_Monitoring",
+    "question_text": "Is a real-time transaction monitoring system deployed to detect and report suspicious activity (SAR filing)?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Deploy rules-based and ML-driven transaction monitoring to support timely Suspicious Activity Report (SAR) filings.",
+    "remediation_horizon_days": 60,
+    "source_doc": "30% questions/FinTech",
+    "source_ref": "Fraud_Monitoring",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "FIN_TECH_15",
+    "scope": "BRANCH",
+    "industry": "FINTECH",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "UDAAP",
+    "question_text": "Have all marketing materials and customer flows been audited to prevent Unfair, Deceptive, or Abusive Acts or Practices (UDAAP) violations?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": false
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Conduct a compliance review of all customer-facing copy, fee disclosures, and promotional terms.",
+    "remediation_horizon_days": 30,
+    "source_doc": "30% questions/FinTech",
+    "source_ref": "UDAAP",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "HLTH_GEN_01",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "All",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "Legal_IP_Regulatory",
+    "question_text": "Has the company executed a compliant Business Associate Agreement (BAA) with every vendor storing, transmitting, or processing Protected Health Information (PHI)?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Audit all third-party vendor contracts and execute standard HIPAA BAAs immediately.",
+    "remediation_horizon_days": 30,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Legal_IP_Regulatory",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "HLTH_GEN_02",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "All",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "Legal_IP_Regulatory",
+    "question_text": "Do any physician compensation structures, joint ventures, or consulting agreements consider the volume or value of referrals under the federal Anti-Kickback Statute (AKS) or Stark Law?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": false
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Engage healthcare regulatory counsel to restructure agreements to standard Fair Market Value (FMV).",
+    "remediation_horizon_days": 30,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Legal_IP_Regulatory",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "HLTH_GEN_03",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "All",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "Growth|Mature"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "Legal_IP_Regulatory",
+    "question_text": "If operating in Corporate Practice of Medicine (CPOM) restricted states, is the clinical entity wholly owned by licensed physicians and managed via a compliant MSO agreement?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Establish a Management Services Organization (MSO) structure with independent physician-owned professional corporations (PCs).",
+    "remediation_horizon_days": 90,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Legal_IP_Regulatory",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "HLTH_GEN_04",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "All",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "HUMAN_CAPITAL",
+    "sub_category": "Human_Capital",
+    "question_text": "Are all clinical and operational personnel screened monthly against federal OIG/SAM exclusion lists to ensure eligibility for federal healthcare programs?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Implement automated monthly screening against the OIG List of Excluded Individuals/Entities (LEIE).",
+    "remediation_horizon_days": 30,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Human_Capital",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "HLTH_GEN_05",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "All",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "Operations_Tech",
+    "question_text": "Has the company obtained HITRUST CSF certification or completed an independent SOC 2 Type II audit covering the HIPAA Security Rule?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "CERTIFICATE_OR_REPORT",
+    "extraction_hint": {
+      "standard": "SOC 2 Type II",
+      "doc_types": [
+        "audit_report"
+      ]
+    },
+    "remediation_action": "Initiate SOC 2 Type II audit readiness and close identified administrative and technical safeguards gaps.",
+    "remediation_horizon_days": 90,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Operations_Tech",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "MED_DEV_01",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "Medical_Devices",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "INDUSTRY_REG",
+    "sub_category": "Healthcare_Regulatory",
+    "question_text": "Under which FDA risk category is your primary device classified (Class I, Class II, or Class III)?",
+    "input_type": "MULTIPLE_CHOICE",
+    "options": null,
+    "depends_on": null,
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "choice",
+      "pass_values": [
+        "Yes",
+        "Class I",
+        "Class II",
+        "None",
+        "Fully Compliant",
+        "B2B Enterprise SaaS"
+      ],
+      "fail_values": [
+        "No",
+        "Critical Risk",
+        "Non-compliant"
+      ]
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Determine classification to trigger conditional regulatory diligence pathways.",
+    "remediation_horizon_days": 30,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Healthcare_Regulatory",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "MED_DEV_02",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "Medical_Devices",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "INDUSTRY_REG",
+    "sub_category": "Healthcare_Regulatory",
+    "question_text": "Has the facility completed annual FDA Establishment Registration and Device Listing under 21 CFR Part 807?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": {
+      "all": [
+        {
+          "question_id": "MED_DEV_01",
+          "op": "eq",
+          "value": "Class I"
+        }
+      ]
+    },
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Submit FDA Form 2891 for establishment registration and Form 2892 for medical device listing.",
+    "remediation_horizon_days": 30,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Healthcare_Regulatory",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "MED_DEV_03",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "Medical_Devices",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "INDUSTRY_REG",
+    "sub_category": "Healthcare_Regulatory",
+    "question_text": "Has the device secured active FDA 510(k) clearance, and is substantial equivalence documentation for the predicate device archived?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": {
+      "all": [
+        {
+          "question_id": "MED_DEV_01",
+          "op": "eq",
+          "value": "Class II"
+        }
+      ]
+    },
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "CERTIFICATE_OR_REPORT",
+    "extraction_hint": {
+      "standard": "FDA 510(k)",
+      "doc_types": [
+        "fda_clearance_letter"
+      ]
+    },
+    "remediation_action": "Prepare 510(k) premarket notification or De Novo classification request.",
+    "remediation_horizon_days": 180,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Healthcare_Regulatory",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "MED_DEV_04",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "Medical_Devices",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "INDUSTRY_REG",
+    "sub_category": "Healthcare_Regulatory",
+    "question_text": "Has the FDA granted Premarket Approval (PMA), and are human clinical trial results compliant with 21 CFR Part 812 (IDE) on file?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": {
+      "all": [
+        {
+          "question_id": "MED_DEV_01",
+          "op": "eq",
+          "value": "Class III"
+        }
+      ]
+    },
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "CERTIFICATE_OR_REPORT",
+    "extraction_hint": {
+      "standard": "FDA PMA",
+      "doc_types": [
+        "fda_approval_letter"
+      ]
+    },
+    "remediation_action": "Suspend commercial distribution; complete pivotal clinical trials and submit PMA dossier.",
+    "remediation_horizon_days": 180,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Healthcare_Regulatory",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "MED_DEV_05",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "Medical_Devices",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "Operations_Tech",
+    "question_text": "Is the Quality Management System (QMS) aligned with the FDA Quality Management System Regulation (QMSR) and ISO 13485:2016?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "CERTIFICATE_OR_REPORT",
+    "extraction_hint": {
+      "standard": "ISO Certification",
+      "doc_types": [
+        "iso_certificate"
+      ]
+    },
+    "remediation_action": "Transition legacy QSR documentation to ISO 13485:2016 structure per FDA QMSR requirements.",
+    "remediation_horizon_days": 90,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Operations_Tech",
+    "last_verified_on": null,
+    "review_status": "DRAFT"
+  },
+  {
+    "question_id": "MED_DEV_06",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "Medical_Devices",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "Operations_Tech",
+    "question_text": "For connected devices or Software as a Medical Device (SaMD), does documentation include a Software Bill of Materials (SBOM) and threat modeling per FDA cybersecurity guidelines?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "POLICY_DOC",
+    "extraction_hint": {
+      "doc_types": [
+        "cybersecurity_framework",
+        "sbom_document"
+      ]
+    },
+    "remediation_action": "Generate automated SBOMs and conduct third-party penetration testing on device firmware/software.",
+    "remediation_horizon_days": 60,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Operations_Tech",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "MED_DEV_07",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "Medical_Devices",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "Legal_IP_Regulatory",
+    "question_text": "Does the company maintain documented Medical Device Reporting (MDR) standard operating procedures and adhere to Unique Device Identification (UDI) labeling?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Adopt compliant MDR adverse event reporting procedures and integrate UDI barcoding into packaging.",
+    "remediation_horizon_days": 30,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Legal_IP_Regulatory",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "MED_DEV_08",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "Medical_Devices",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "Manufacturing_Industrial",
+    "question_text": "Are all critical component suppliers qualified through documented audits and governed by active Quality Agreements?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Execute formal Quality Agreements specifying mandatory notification for raw material or process changes.",
+    "remediation_horizon_days": 60,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Manufacturing_Industrial",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "PHARM_01",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "Pharmaceuticals",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "Startup|Growth"
+    ],
+    "dimension": "INDUSTRY_REG",
+    "sub_category": "Healthcare_Regulatory",
+    "question_text": "What is the current FDA status of primary drug candidates (Pre-clinical, Active IND, Phase I, Phase II, Phase III, or Approved NDA)?",
+    "input_type": "MULTIPLE_CHOICE",
+    "options": null,
+    "depends_on": null,
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "choice",
+      "pass_values": [
+        "Yes",
+        "Class I",
+        "Class II",
+        "None",
+        "Fully Compliant",
+        "B2B Enterprise SaaS"
+      ],
+      "fail_values": [
+        "No",
+        "Critical Risk",
+        "Non-compliant"
+      ]
+    },
+    "evidence_type": "CERTIFICATE_OR_REPORT",
+    "extraction_hint": {
+      "standard": "ASTM E1527",
+      "doc_types": [
+        "environmental_audit"
+      ]
+    },
+    "remediation_action": "Map stage of development to clinical trial milestone budgets and pipeline timelines.",
+    "remediation_horizon_days": 30,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Healthcare_Regulatory",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "PHARM_02",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "Pharmaceuticals",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "INDUSTRY_REG",
+    "sub_category": "Healthcare_Regulatory",
+    "question_text": "Are all preclinical and clinical studies conducted in strict compliance with Good Laboratory Practice (GLP - 21 CFR Part 58) and Good Clinical Practice (GCP)?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Audit contract research organizations (CROs) for GLP/GCP compliance; remediate study trial master files.",
+    "remediation_horizon_days": 90,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Healthcare_Regulatory",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "PHARM_03",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "Pharmaceuticals",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "Established|Mature"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "Manufacturing_Industrial",
+    "question_text": "Do active manufacturing facilities and contract development and manufacturing organizations (CDMOs) comply with current Good Manufacturing Practice (cGMP - 21 CFR Parts 210/211)?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Execute technical quality agreements and verify CDMO FDA Form 483 inspection history.",
+    "remediation_horizon_days": 90,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Manufacturing_Industrial",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "PHARM_04",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "Pharmaceuticals",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "Legal_IP_Regulatory",
+    "question_text": "Are core molecule and formulation patent claims listed (or eligible to be listed) in the FDA Orange Book, and what is the earliest patent expiry date across the portfolio?",
+    "input_type": "TEXT",
+    "options": null,
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "self_attested",
+      "description": "Passed if evidence or self-attestation is provided"
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Perform patent landscaping to determine Hatch-Waxman exclusivity extensions and generic challenge exposure.",
+    "remediation_horizon_days": 60,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Legal_IP_Regulatory",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "PHARM_05",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "Pharmaceuticals",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "INDUSTRY_REG",
+    "sub_category": "Healthcare_Regulatory",
+    "question_text": "Do any pipeline compounds involve DEA controlled substances, and are all necessary DEA manufacturing, import/export, and handling registrations active?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Obtain or renew required DEA Schedule I-V registrations and establish quota tracking.",
+    "remediation_horizon_days": 60,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Healthcare_Regulatory",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "BIOTECH_01",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "Biotechnology",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "Legal_IP_Regulatory",
+    "question_text": "Was any underlying platform technology developed using government funding or university facilities subject to Bayh-Dole Act march-in rights?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Review institutional tech-transfer agreements to ensure compliance with federal reporting and US manufacturing requirements.",
+    "remediation_horizon_days": 60,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Legal_IP_Regulatory",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "BIOTECH_02",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "Biotechnology",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "Legal_IP_Regulatory",
+    "question_text": "Has a comprehensive, third-party Freedom to Operate (FTO) analysis been completed for all cell lines, genetic sequences, and delivery vectors?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Commission formal FTO legal opinion for high-risk genetic constructs and licensing targets.",
+    "remediation_horizon_days": 60,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Legal_IP_Regulatory",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "BIOTECH_03",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "Biotechnology",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "Growth|Established"
+    ],
+    "dimension": "INDUSTRY_REG",
+    "sub_category": "Healthcare_Regulatory",
+    "question_text": "For biologic candidates, has the regulatory pathway for Biologics License Application (BLA - 21 CFR Part 601) and potential biosimilar competition been defined?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Formulate BLA regulatory dossier and establish 12-year reference product exclusivity strategy.",
+    "remediation_horizon_days": 90,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Healthcare_Regulatory",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "BIOTECH_04",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "Biotechnology",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "Operations_Tech",
+    "question_text": "Are Master Cell Banks (MCB) and Working Cell Banks (WCB) fully characterized, identity-tested, and cryopreserved across geographically diverse backup repositories?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Establish dual-site redundant cryogenic storage contracts for all proprietary cell lines.",
+    "remediation_horizon_days": 30,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Operations_Tech",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "DIGI_HLTH_01",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "Digital_Health",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "INDUSTRY_REG",
+    "sub_category": "Healthcare_Regulatory",
+    "question_text": "Has the clinical software functionality been evaluated against FDA Clinical Decision Support (CDS) guidance to confirm non-device status or SaMD classification?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Document regulatory rationale validating exemption under 21st Century Cures Act or initiate 510(k) preparation.",
+    "remediation_horizon_days": 60,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Healthcare_Regulatory",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "DIGI_HLTH_02",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "Digital_Health",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "Operations_Tech",
+    "question_text": "Does the platform adhere to ONC Health IT interoperability mandates, including HL7 FHIR release 4 APIs, for electronic health record (EHR) integrations?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "MEDIUM",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Upgrade data ingestion pipelines to support standardized HL7/FHIR APIs and USCDI standards.",
+    "remediation_horizon_days": 90,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Operations_Tech",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "DIGI_HLTH_03",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "Digital_Health",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "REVENUE_QUALITY",
+    "sub_category": "Revenue_Quality",
+    "question_text": "What is the trailing 12-month clean claims rate and first-pass payment rate for commercial and government health insurance claims?",
+    "input_type": "PERCENTAGE",
+    "options": null,
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "self_attested",
+      "description": "Passed if evidence or self-attestation is provided"
+    },
+    "evidence_type": "FINANCIAL_TABLE",
+    "extraction_hint": {
+      "table_type": "billing_aging_report"
+    },
+    "remediation_action": "Implement pre-submission claim scrubbers to decrease medical billing rejection and denial rates.",
+    "remediation_horizon_days": 60,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Revenue_Quality",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "DIGI_HLTH_04",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "Digital_Health",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "Operations_Tech",
+    "question_text": "Does the system store data in multi-tenant cloud environments with end-to-end encryption (AES-256 at rest, TLS 1.3 in transit) and role-based access controls (RBAC)?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Enforce database field-level encryption and configure centralized RBAC with mandatory multi-factor authentication.",
+    "remediation_horizon_days": 30,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Operations_Tech",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "FIN_SECTOR_01",
+    "scope": "BRANCH",
+    "industry": "FINTECH",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "Legal_IP_Regulatory",
+    "question_text": "Which of the following best describes your primary financial regulatory classification (Money Services Business, Lender, Digital Asset, or Depository)?",
+    "input_type": "MULTIPLE_CHOICE",
+    "options": null,
+    "depends_on": null,
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "choice",
+      "pass_values": [
+        "Yes",
+        "Class I",
+        "Class II",
+        "None",
+        "Fully Compliant",
+        "B2B Enterprise SaaS"
+      ],
+      "fail_values": [
+        "No",
+        "Critical Risk",
+        "Non-compliant"
+      ]
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Determine classification to trigger appropriate regulatory compliance pathways.",
+    "remediation_horizon_days": 30,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Legal_IP_Regulatory",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "FIN_MTL_01",
+    "scope": "BRANCH",
+    "industry": "FINTECH",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "Legal_IP_Regulatory",
+    "question_text": "Is the company registered as a Money Services Business (MSB) with FinCEN, and does it maintain active Money Transmitter Licenses (MTLs) in all applicable US states?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": {
+      "all": [
+        {
+          "question_id": "FIN_SECTOR_01",
+          "op": "eq",
+          "value": "Money Services Business"
+        }
+      ]
+    },
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Suspend unlicensed operations; register with FinCEN and initiate state-by-state MTL applications immediately.",
+    "remediation_horizon_days": 180,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Legal_IP_Regulatory",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "FIN_USURY_01",
+    "scope": "BRANCH",
+    "industry": "FINTECH",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "Legal_IP_Regulatory",
+    "question_text": "Are all loan products fully compliant with the Truth in Lending Act (TILA), Equal Credit Opportunity Act (ECOA), and state-level usury rate caps?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": {
+      "all": [
+        {
+          "question_id": "FIN_SECTOR_01",
+          "op": "eq",
+          "value": "Lender"
+        }
+      ]
+    },
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Engage regulatory counsel to audit loan origination flow, APR calculations, and adverse action notices.",
+    "remediation_horizon_days": 60,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Legal_IP_Regulatory",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "FIN_CRYPTO_01",
+    "scope": "BRANCH",
+    "industry": "FINTECH",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "Legal_IP_Regulatory",
+    "question_text": "Has the company obtained a BitLicense (if operating in NY) and completed an independent audit of its digital asset custody and cold-storage architecture?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": {
+      "all": [
+        {
+          "question_id": "FIN_SECTOR_01",
+          "op": "eq",
+          "value": "Digital Asset"
+        }
+      ]
+    },
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "CERTIFICATE_OR_REPORT",
+    "extraction_hint": {
+      "standard": "NY BitLicense",
+      "doc_types": [
+        "license_document"
+      ]
+    },
+    "remediation_action": "Execute an independent proof-of-reserves (PoR) audit and secure necessary state virtual currency licenses.",
+    "remediation_horizon_days": 90,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Legal_IP_Regulatory",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "FIN_AML_01",
+    "scope": "BRANCH",
+    "industry": "FINTECH",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "Legal_IP_Regulatory",
+    "question_text": "Does the company have a documented Anti-Money Laundering (AML) and Know Your Customer (KYC/KYB) compliance program integrated into user onboarding?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Integrate a certified third-party KYC/AML identity verification API and designate a formal BSA/AML Compliance Officer.",
+    "remediation_horizon_days": 30,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Legal_IP_Regulatory",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "FIN_PCIDSS_01",
+    "scope": "BRANCH",
+    "industry": "FINTECH",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "Operations_Tech",
+    "question_text": "Is the company fully PCI-DSS v4.0 compliant for handling cardholder data, and has an independent Report on Compliance (ROC) been issued?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Initiate a PCI-DSS v4.0 readiness assessment and implement point-to-point encryption (P2PE).",
+    "remediation_horizon_days": 90,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Operations_Tech",
+    "last_verified_on": null,
+    "review_status": "DRAFT"
+  },
+  {
+    "question_id": "FIN_CFPB_01",
+    "scope": "BRANCH",
+    "industry": "FINTECH",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "Operations_Tech",
+    "question_text": "Is the platform compliant with the CFPB Section 1033 Personal Financial Data Rights rule (phased compliance starting 2026), ensuring consumer data portability without screen-scraping?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Migrate away from screen-scraping reliance and integrate direct, secure APIs for financial data sharing.",
+    "remediation_horizon_days": 180,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Operations_Tech",
+    "last_verified_on": null,
+    "review_status": "DRAFT"
+  },
+  {
+    "question_id": "FIN_FBO_01",
+    "scope": "BRANCH",
+    "industry": "FINTECH",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "FIN_CONTROLS",
+    "sub_category": "Financial_Controls",
+    "question_text": "Are consumer funds held in FBO (For Benefit Of) accounts at an FDIC-insured sponsor bank, with strictly documented daily reconciliation processes?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "FINANCIAL_TABLE",
+    "extraction_hint": {
+      "table_type": "reconciliation_schedule"
+    },
+    "remediation_action": "Establish FBO accounts with a sponsor bank and implement automated daily ledger reconciliation.",
+    "remediation_horizon_days": 30,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Financial_Controls",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "SAAS_01",
+    "scope": "BRANCH",
+    "industry": "SOFTWARE",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "Operations_Tech",
+    "question_text": "What is your primary software delivery and customer model (B2B Enterprise SaaS, B2C Platform, or AI Infrastructure)?",
+    "input_type": "MULTIPLE_CHOICE",
+    "options": null,
+    "depends_on": null,
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "choice",
+      "pass_values": [
+        "Yes",
+        "Class I",
+        "Class II",
+        "None",
+        "Fully Compliant",
+        "B2B Enterprise SaaS"
+      ],
+      "fail_values": [
+        "No",
+        "Critical Risk",
+        "Non-compliant"
+      ]
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Determine software delivery model to trigger specific data privacy and liability diligence.",
+    "remediation_horizon_days": 30,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Operations_Tech",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "SAAS_02",
+    "scope": "BRANCH",
+    "industry": "SOFTWARE",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "Operations_Tech",
+    "question_text": "Has the company completed an independent SOC 2 Type II audit covering Security, Availability, and Confidentiality trust services criteria?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "CERTIFICATE_OR_REPORT",
+    "extraction_hint": {
+      "standard": "SOC 2 Type II",
+      "doc_types": [
+        "audit_report"
+      ]
+    },
+    "remediation_action": "Engage an external auditing firm to conduct a SOC 2 readiness assessment and establish an observation window.",
+    "remediation_horizon_days": 180,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Operations_Tech",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "SAAS_03",
+    "scope": "BRANCH",
+    "industry": "SOFTWARE",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "Legal_IP_Regulatory",
+    "question_text": "Is the platform fully compliant with the California Consumer Privacy Act (CCPA) and CPRA, including documented procedures for consumer data deletion requests?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Publish a compliant privacy policy and automate Data Subject Access Request (DSAR) deletion workflows.",
+    "remediation_horizon_days": 60,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Legal_IP_Regulatory",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "SAAS_04",
+    "scope": "BRANCH",
+    "industry": "SOFTWARE",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "TXN_READINESS",
+    "sub_category": "Transaction_Readiness",
+    "question_text": "Do active enterprise Service Level Agreements (SLAs) contain unlimited financial liability caps or automatic termination clauses for uptime failures?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": {
+      "all": [
+        {
+          "question_id": "SAAS_01",
+          "op": "eq",
+          "value": "B2B Enterprise SaaS"
+        }
+      ]
+    },
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": false
+    },
+    "evidence_type": "CONTRACT_CLAUSE",
+    "extraction_hint": {
+      "cuad_category": "Cap on Liability",
+      "doc_types": [
+        "customer_contract",
+        "msa"
+      ]
+    },
+    "remediation_action": "Renegotiate standard Master Services Agreements (MSAs) to cap financial liability at 12 months of contract value.",
+    "remediation_horizon_days": 60,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Transaction_Readiness",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "SAAS_05",
+    "scope": "BRANCH",
+    "industry": "SOFTWARE",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "Legal_IP_Regulatory",
+    "question_text": "Are proprietary machine learning models trained on user data, and do customer Terms of Service (TOS) explicitly grant the right to use this data for training purposes?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": {
+      "all": [
+        {
+          "question_id": "SAAS_01",
+          "op": "eq",
+          "value": "AI Infrastructure"
+        }
+      ]
+    },
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "CONTRACT_CLAUSE",
+    "extraction_hint": {
+      "cuad_category": "IP Ownership Assignment",
+      "doc_types": [
+        "terms_of_service"
+      ]
+    },
+    "remediation_action": "Update TOS to explicitly require opt-in/opt-out consent for model training and data anonymization.",
+    "remediation_horizon_days": 30,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Legal_IP_Regulatory",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "SAAS_06",
+    "scope": "BRANCH",
+    "industry": "SOFTWARE",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "Legal_IP_Regulatory",
+    "question_text": "Does the software architecture rely on any viral copyleft open-source licenses (e.g., GPL, AGPL) that could legally force the disclosure of proprietary source code?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": false
+    },
+    "evidence_type": "CONTRACT_CLAUSE",
+    "extraction_hint": {
+      "cuad_category": "License Grant",
+      "doc_types": [
+        "code_audit",
+        "ip_agreement"
+      ]
+    },
+    "remediation_action": "Run a Software Composition Analysis (SCA) tool to identify and replace all copyleft dependencies.",
+    "remediation_horizon_days": 60,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Legal_IP_Regulatory",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "SAAS_07",
+    "scope": "BRANCH",
+    "industry": "SOFTWARE",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "Operations_Tech",
+    "question_text": "Are there defined Disaster Recovery (DR) and Business Continuity Plans (BCP) with documented Recovery Time Objectives (RTO) and Recovery Point Objectives (RPO)?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "MEDIUM",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "POLICY_DOC",
+    "extraction_hint": {
+      "doc_types": [
+        "dr_bcp_policy",
+        "security_policy",
+        "privacy_policy"
+      ]
+    },
+    "remediation_action": "Draft and execute an annual tabletop exercise for a catastrophic server failure to validate RTO/RPO targets.",
+    "remediation_horizon_days": 90,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Operations_Tech",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "SAAS_08",
+    "scope": "BRANCH",
+    "industry": "SOFTWARE",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "Public|Growth"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "Operations_Tech",
+    "question_text": "Does the company comply with the SEC Item 1.05 cybersecurity rules by maintaining an incident response plan requiring material breach notification within 4 days?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": false
+    },
+    "evidence_type": "POLICY_DOC",
+    "extraction_hint": {
+      "doc_types": [
+        "dr_bcp_policy",
+        "security_policy",
+        "privacy_policy"
+      ]
+    },
+    "remediation_action": "Formalize a cyber incident response playbook with a strict materiality assessment and 4-day escalation trigger.",
+    "remediation_horizon_days": 30,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Operations_Tech",
+    "last_verified_on": null,
+    "review_status": "DRAFT"
+  },
+  {
+    "question_id": "MFG_01",
+    "scope": "BRANCH",
+    "industry": "MANUFACTURING",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "Operations_Tech",
+    "question_text": "What is your primary manufacturing operational model (Contract Manufacturer, Heavy Industrial Equipment, or Chemicals and Materials)?",
+    "input_type": "MULTIPLE_CHOICE",
+    "options": null,
+    "depends_on": null,
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "choice",
+      "pass_values": [
+        "Yes",
+        "Class I",
+        "Class II",
+        "None",
+        "Fully Compliant",
+        "B2B Enterprise SaaS"
+      ],
+      "fail_values": [
+        "No",
+        "Critical Risk",
+        "Non-compliant"
+      ]
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Determine manufacturing model to route environmental and supply chain diligence.",
+    "remediation_horizon_days": 30,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Operations_Tech",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "MFG_02",
+    "scope": "BRANCH",
+    "industry": "MANUFACTURING",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "HUMAN_CAPITAL",
+    "sub_category": "Human_Capital",
+    "question_text": "Has the company been cited for any Occupational Safety and Health Administration (OSHA) violations, and is the Total Recordable Incident Rate (TRIR) actively tracked?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": false
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Conduct a mock OSHA safety audit and implement a digital TRIR reporting dashboard.",
+    "remediation_horizon_days": 30,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Human_Capital",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "MFG_03",
+    "scope": "BRANCH",
+    "industry": "MANUFACTURING",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "Operations_Tech",
+    "question_text": "What percentage of raw materials or critical components are single-sourced from vendors located in a single geographic region?",
+    "input_type": "PERCENTAGE",
+    "options": null,
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "self_attested",
+      "description": "Passed if evidence or self-attestation is provided"
+    },
+    "evidence_type": "FINANCIAL_TABLE",
+    "extraction_hint": {
+      "table_type": "supplier_spend_table"
+    },
+    "remediation_action": "Develop a dual-sourcing procurement strategy to mitigate geopolitical and geographic supply chain risks.",
+    "remediation_horizon_days": 180,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Operations_Tech",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "MFG_04",
+    "scope": "BRANCH",
+    "industry": "MANUFACTURING",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "Legal_IP_Regulatory",
+    "question_text": "Does the supply chain mapping confirm full compliance with the Uyghur Forced Labor Prevention Act (UFLPA) to ensure no components are sourced from restricted regions?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": false
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Execute deep-tier supply chain tracing and secure certificates of origin from all Tier 1 and Tier 2 suppliers.",
+    "remediation_horizon_days": 90,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Legal_IP_Regulatory",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "MFG_05",
+    "scope": "BRANCH",
+    "industry": "MANUFACTURING",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "Legal_IP_Regulatory",
+    "question_text": "Are all manufactured or imported chemical substances fully registered and compliant with the EPA Toxic Substances Control Act (TSCA), including early 2027 PFAS reporting?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": {
+      "all": [
+        {
+          "question_id": "MFG_MODEL_01",
+          "op": "eq",
+          "value": "Chemicals and Materials"
+        }
+      ]
+    },
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Conduct an immediate inventory audit to identify PFAS components and prepare TSCA Section 8(a)(7) reporting data.",
+    "remediation_horizon_days": 90,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Legal_IP_Regulatory",
+    "last_verified_on": null,
+    "review_status": "DRAFT"
+  },
+  {
+    "question_id": "MFG_06",
+    "scope": "BRANCH",
+    "industry": "MANUFACTURING",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "Operations_Tech",
+    "question_text": "Is the facility ISO 9001 certified for Quality Management Systems, and are regular statistical process control (SPC) audits conducted?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": {
+      "all": [
+        {
+          "question_id": "MFG_MODEL_01",
+          "op": "eq",
+          "value": "Contract Manufacturer"
+        }
+      ]
+    },
+    "risk_weight": "MEDIUM",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "CERTIFICATE_OR_REPORT",
+    "extraction_hint": {
+      "standard": "ISO Certification",
+      "doc_types": [
+        "iso_certificate"
+      ]
+    },
+    "remediation_action": "Initiate ISO 9001 gap analysis and implement standard operating procedures (SOPs) for continuous quality control.",
+    "remediation_horizon_days": 180,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Operations_Tech",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "MFG_07",
+    "scope": "BRANCH",
+    "industry": "MANUFACTURING",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "Legal_IP_Regulatory",
+    "question_text": "Are there active environmental liabilities, and does the facility hold all required EPA permits for hazardous waste disposal and wastewater discharge?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": false
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Commission a Phase I Environmental Site Assessment (ESA) and verify all active state/federal discharge permits.",
+    "remediation_horizon_days": 60,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Legal_IP_Regulatory",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "ENG_FERC_01",
+    "scope": "BRANCH",
+    "industry": "ENERGY",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "FIN_CONTROLS",
+    "sub_category": "Financial_Controls",
+    "question_text": "What percentage of the company's projected revenue or CapEx funding is dependent on Inflation Reduction Act (IRA) tax credits or DOE grants?",
+    "input_type": "PERCENTAGE",
+    "options": null,
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "self_attested",
+      "description": "Passed if evidence or self-attestation is provided"
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Perform a sensitivity analysis modeling the financial impact of a 50% reduction in federal grant or tax credit availability.",
+    "remediation_horizon_days": 30,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Financial_Controls",
+    "last_verified_on": null,
+    "review_status": "DRAFT"
+  },
+  {
+    "question_id": "ENG_PPA_01",
+    "scope": "BRANCH",
+    "industry": "ENERGY",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "Legal_IP_Regulatory",
+    "question_text": "Has the company secured all necessary state/local zoning permits, environmental impact reports (EIR), and utility grid interconnection approvals (under FERC Order 2023)?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": {
+      "all": [
+        {
+          "question_id": "ENERGY_01",
+          "op": "eq",
+          "value": "Solar and Wind Generation"
+        }
+      ]
+    },
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Audit the interconnection queue status and prioritize filing comprehensive site-control and environmental impact studies.",
+    "remediation_horizon_days": 180,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Legal_IP_Regulatory",
+    "last_verified_on": null,
+    "review_status": "DRAFT"
+  },
+  {
+    "question_id": "ENG_PHASE1_01",
+    "scope": "BRANCH",
+    "industry": "ENERGY",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "FIN_CONTROLS",
+    "sub_category": "Financial_Controls",
+    "question_text": "Are there executed Power Purchase Agreements (PPAs) or off-take contracts guaranteeing revenue for deployed grid assets?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "CONTRACT_CLAUSE",
+    "extraction_hint": {
+      "cuad_category": "Revenue/Profit Sharing",
+      "doc_types": [
+        "ppa_agreement"
+      ]
+    },
+    "remediation_action": "Secure long-term corporate or utility off-take agreements to stabilize projected cash flows and bankability.",
+    "remediation_horizon_days": 90,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Financial_Controls",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "ENG_IRASRC_01",
+    "scope": "BRANCH",
+    "industry": "ENERGY",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "Legal_IP_Regulatory",
+    "question_text": "Is the supply chain for critical battery minerals (e.g., lithium, cobalt) audited for compliance with the IRA's domestic sourcing or free-trade agreement requirements?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": {
+      "all": [
+        {
+          "question_id": "ENERGY_01",
+          "op": "eq",
+          "value": "Battery and Energy Storage"
+        }
+      ]
+    },
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Restructure procurement contracts to source critical minerals from US or approved free-trade agreement nations to retain tax credit eligibility.",
+    "remediation_horizon_days": 180,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Legal_IP_Regulatory",
+    "last_verified_on": null,
+    "review_status": "DRAFT"
+  },
+  {
+    "question_id": "ENG_WARRANTY_01",
+    "scope": "BRANCH",
+    "industry": "ENERGY",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "FIN_CONTROLS",
+    "sub_category": "Financial_Controls",
+    "question_text": "Does the company maintain a performance warranty reserve for hardware degradation or long-term operational and maintenance (O&M) liabilities?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "MEDIUM",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": false
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Establish a dedicated cash reserve explicitly modeled against the projected degradation curve of deployed hardware.",
+    "remediation_horizon_days": 60,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Financial_Controls",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "ENG_NERCCIP_01",
+    "scope": "BRANCH",
+    "industry": "ENERGY",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "All"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "Operations_Tech",
+    "question_text": "Is the operational technology (OT) network strictly segmented from the IT network to comply with NERC CIP (Critical Infrastructure Protection) cybersecurity standards?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": {
+      "all": [
+        {
+          "question_id": "ENERGY_01",
+          "op": "eq",
+          "value": "Grid Infrastructure"
+        }
+      ]
+    },
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Execute an architecture overhaul to establish air-gapped or firewalled segmentation between IT systems and physical grid OT.",
+    "remediation_horizon_days": 60,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Operations_Tech",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "HLTH_ESTREG_01",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "INDUSTRY_REG",
+    "sub_category": "Establishment_Registration",
+    "question_text": "Has the facility completed its annual FDA Establishment Registration and Device Listing?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Submit FDA Form 2891 and 2892 prior to commercial distribution.",
+    "remediation_horizon_days": 30,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Establishment_Registration",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "HLTH_QMSR_01",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "QMSR_Compliance",
+    "question_text": "Is the Quality Management System (QMS) fully documented and compliant with the FDA QMSR and ISO 13485:2016 standards (effective Feb 2026)?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "CERTIFICATE_OR_REPORT",
+    "extraction_hint": {
+      "standard": "ISO Certification",
+      "doc_types": [
+        "iso_certificate"
+      ]
+    },
+    "remediation_action": "Transition QMS documentation from legacy QSR to ISO 13485:2016 framework.",
+    "remediation_horizon_days": 90,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "QMSR_Compliance",
+    "last_verified_on": null,
+    "review_status": "DRAFT"
+  },
+  {
+    "question_id": "HLTH_DSGNCTRL_01",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "Design_Controls",
+    "question_text": "Are Design Controls properly maintained in the Design History File (DHF), mapping user needs to validated design outputs?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Audit DHF for complete traceability matrices and design validation records.",
+    "remediation_horizon_days": 60,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Design_Controls",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "HLTH_RISKMGMT_01",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "Risk_Management",
+    "question_text": "Has a comprehensive risk management file been established in accordance with ISO 14971?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "CERTIFICATE_OR_REPORT",
+    "extraction_hint": {
+      "standard": "ISO Certification",
+      "doc_types": [
+        "iso_certificate"
+      ]
+    },
+    "remediation_action": "Perform and document a formal hazard analysis and FMEA.",
+    "remediation_horizon_days": 60,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Risk_Management",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "HLTH_CYBER_01",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "Software_Gateway",
+    "question_text": "Does the medical device contain software, connect to the internet, or qualify as Software as a Medical Device (SaMD)?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Trigger FDA Premarket Cybersecurity Guidance compliance pathways.",
+    "remediation_horizon_days": 30,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Software_Gateway",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "HLTH_CYBER_02",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "SPDF",
+    "question_text": "Has a Secure Product Development Framework (SPDF) been implemented and integrated into the QMS?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": {
+      "all": [
+        {
+          "question_id": "HLTH_CYBER_01",
+          "op": "eq",
+          "value": "Yes"
+        }
+      ]
+    },
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "POLICY_DOC",
+    "extraction_hint": {
+      "doc_types": [
+        "cybersecurity_framework",
+        "sbom_document"
+      ]
+    },
+    "remediation_action": "Align software lifecycle processes with IEC 81001-5-1 standards.",
+    "remediation_horizon_days": 90,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "SPDF",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "HLTH_CYBER_03",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "SBOM",
+    "question_text": "Is a machine-readable Software Bill of Materials (SBOM) available in SPDX or CycloneDX format, compliant with FD&C Act \u00a7524B?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": {
+      "all": [
+        {
+          "question_id": "HLTH_CYBER_01",
+          "op": "eq",
+          "value": "Yes"
+        }
+      ]
+    },
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "POLICY_DOC",
+    "extraction_hint": {
+      "doc_types": [
+        "cybersecurity_framework",
+        "sbom_document"
+      ]
+    },
+    "remediation_action": "Generate automated SBOMs during the software build process.",
+    "remediation_horizon_days": 30,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "SBOM",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "HLTH_CYBER_04",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "Threat_Modeling",
+    "question_text": "Has formal threat modeling (e.g., STRIDE) been conducted, linking identified threats to specific risk controls?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": {
+      "all": [
+        {
+          "question_id": "HLTH_CYBER_01",
+          "op": "eq",
+          "value": "Yes"
+        }
+      ]
+    },
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "POLICY_DOC",
+    "extraction_hint": {
+      "doc_types": [
+        "cybersecurity_framework",
+        "sbom_document"
+      ]
+    },
+    "remediation_action": "Execute threat modeling mapping entry points, trust boundaries, and attack paths.",
+    "remediation_horizon_days": 60,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Threat_Modeling",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "HLTH_CYBER_05",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "Vulnerability_Management",
+    "question_text": "Is there a documented postmarket vulnerability management plan outlining patch deployment SLAs?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": {
+      "all": [
+        {
+          "question_id": "HLTH_CYBER_01",
+          "op": "eq",
+          "value": "Yes"
+        }
+      ]
+    },
+    "risk_weight": "MEDIUM",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "CONTRACT_CLAUSE",
+    "extraction_hint": {
+      "cuad_category": "Termination for Convenience",
+      "doc_types": [
+        "customer_contract",
+        "sla"
+      ]
+    },
+    "remediation_action": "Define triage criteria and OTA (Over-The-Air) secure update mechanisms.",
+    "remediation_horizon_days": 60,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Vulnerability_Management",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "HLTH_510K_01",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "INDUSTRY_REG",
+    "sub_category": "510k_Clearance",
+    "question_text": "Has the company secured active FDA 510(k) clearance, and is the substantial equivalence documentation for the predicate device available?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": {
+      "all": [
+        {
+          "question_id": "MED_DEV_01",
+          "op": "eq",
+          "value": "Class II"
+        }
+      ]
+    },
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "CERTIFICATE_OR_REPORT",
+    "extraction_hint": {
+      "standard": "FDA 510(k)",
+      "doc_types": [
+        "fda_clearance_letter"
+      ]
+    },
+    "remediation_action": "Prepare 510(k) premarket notification or De Novo classification request.",
+    "remediation_horizon_days": 180,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "510k_Clearance",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "HLTH_PMA_01",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "INDUSTRY_REG",
+    "sub_category": "PMA_Approval",
+    "question_text": "Has the FDA granted Premarket Approval (PMA) for this device?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": {
+      "all": [
+        {
+          "question_id": "MED_DEV_01",
+          "op": "eq",
+          "value": "Class III"
+        }
+      ]
+    },
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "CERTIFICATE_OR_REPORT",
+    "extraction_hint": {
+      "standard": "FDA PMA",
+      "doc_types": [
+        "fda_approval_letter"
+      ]
+    },
+    "remediation_action": "Suspend commercial distribution and submit comprehensive PMA dossier.",
+    "remediation_horizon_days": 180,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "PMA_Approval",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "HLTH_CLINTRIAL_01",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "INDUSTRY_REG",
+    "sub_category": "Clinical_Trials",
+    "question_text": "Are all human clinical trial results compliant with 21 CFR Part 812 (IDE) and supported by Institutional Review Board (IRB) approvals?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": {
+      "all": [
+        {
+          "question_id": "MED_DEV_01",
+          "op": "eq",
+          "value": "Class III"
+        }
+      ]
+    },
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Audit the Trial Master File (TMF) for Good Clinical Practice (GCP) compliance.",
+    "remediation_horizon_days": 90,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Clinical_Trials",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "MED_DEV_09",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "Supplier_Controls",
+    "question_text": "Are outsourced processes and critical component suppliers governed by written Quality Agreements?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Execute formal Quality Agreements specifying notification requirements for process changes.",
+    "remediation_horizon_days": 60,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Supplier_Controls",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "MED_DEV_10",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "Production_Controls",
+    "question_text": "Are Device Master Records (DMR) and Device History Records (DHR) maintained to prove products are manufactured to approved specifications?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Digitize and audit batch records and DHRs for signature completeness.",
+    "remediation_horizon_days": 30,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Production_Controls",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "MED_DEV_11",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "UDI_Compliance",
+    "question_text": "Does the device label bear a Unique Device Identifier (UDI) in both human-readable and machine-readable form?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "MEDIUM",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Integrate UDI barcoding into the packaging and submit data to the GUDID database.",
+    "remediation_horizon_days": 30,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "UDI_Compliance",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "MED_DEV_12",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "INDUSTRY_REG",
+    "sub_category": "MDR_Reporting",
+    "question_text": "Does the company maintain documented Medical Device Reporting (MDR) procedures for adverse events within 30 days?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Implement compliant MDR adverse event evaluation and reporting workflows.",
+    "remediation_horizon_days": 30,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "MDR_Reporting",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "MED_DEV_13",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "CAPA_System",
+    "question_text": "Is a robust Corrective and Preventive Action (CAPA) system actively utilized to investigate and resolve nonconformities?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Audit CAPA logs for timely effectiveness checks and root cause analysis documentation.",
+    "remediation_horizon_days": 60,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "CAPA_System",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "MED_DEV_14",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "FIN_PERFORMANCE",
+    "sub_category": "Marketing_Claims",
+    "question_text": "Are all promotional materials and Instructions for Use (IFU) strictly aligned with the FDA-cleared indications for use?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Conduct a regulatory review of all marketing assets to eliminate off-label claims.",
+    "remediation_horizon_days": 30,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Marketing_Claims",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "MED_DEV_15",
+    "scope": "BRANCH",
+    "industry": "HEALTHCARE",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "Import_Export",
+    "question_text": "If manufactured internationally, does the importer of record hold appropriate FDA registration and comply with CBP requirements?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "MEDIUM",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Verify importer registration status and secure necessary Certificates to Foreign Government (CFG).",
+    "remediation_horizon_days": 60,
+    "source_doc": "30% questions/HealthCare",
+    "source_ref": "Import_Export",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "MFG_MODEL_01",
+    "scope": "BRANCH",
+    "industry": "MANUFACTURING",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "Manufacturing_Model",
+    "question_text": "What is the primary manufacturing model (Contract / General Manufacturing, Heavy Industrial / Defense, or Chemicals and Materials)?",
+    "input_type": "MULTIPLE_CHOICE",
+    "options": null,
+    "depends_on": null,
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "choice",
+      "pass_values": [
+        "Yes",
+        "Class I",
+        "Class II",
+        "None",
+        "Fully Compliant",
+        "B2B Enterprise SaaS"
+      ],
+      "fail_values": [
+        "No",
+        "Critical Risk",
+        "Non-compliant"
+      ]
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Determine manufacturing profile to route specific EPA, OSHA, and ITAR compliance checks.",
+    "remediation_horizon_days": 30,
+    "source_doc": "30% questions/Manufacturing & Industrial",
+    "source_ref": "Manufacturing_Model",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "MFG_SUPPLY_01",
+    "scope": "BRANCH",
+    "industry": "MANUFACTURING",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "Supply_Chain_UFLPA",
+    "question_text": "Does the company conduct deep-tier supply chain mapping and Entity List screening to maintain 'clear and convincing evidence' for UFLPA compliance?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Deploy automated supply chain tracing software to prevent US Customs and Border Protection (CBP) detainments.",
+    "remediation_horizon_days": 60,
+    "source_doc": "30% questions/Manufacturing & Industrial",
+    "source_ref": "Supply_Chain_UFLPA",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "MFG_OSHA_01",
+    "scope": "BRANCH",
+    "industry": "MANUFACTURING",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "HUMAN_CAPITAL",
+    "sub_category": "OSHA_Compliance",
+    "question_text": "Has the company received any OSHA citations in the past 3 years, and is the Total Recordable Incident Rate (TRIR) maintained below the industry average?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": false
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Conduct a mock OSHA safety audit and implement a digital TRIR reporting dashboard.",
+    "remediation_horizon_days": 30,
+    "source_doc": "30% questions/Manufacturing & Industrial",
+    "source_ref": "OSHA_Compliance",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "MFG_ENVPERM_01",
+    "scope": "BRANCH",
+    "industry": "MANUFACTURING",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "Environmental_Liability",
+    "question_text": "Has a Phase I Environmental Site Assessment (ESA) been completed for all owned or leased manufacturing facilities within the last 5 years?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "CERTIFICATE_OR_REPORT",
+    "extraction_hint": {
+      "standard": "ASTM E1527",
+      "doc_types": [
+        "environmental_audit"
+      ]
+    },
+    "remediation_action": "Commission an updated Phase I ESA to identify potential CERCLA liability and ground contamination risks.",
+    "remediation_horizon_days": 60,
+    "source_doc": "30% questions/Manufacturing & Industrial",
+    "source_ref": "Environmental_Liability",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "MFG_PFAS_01",
+    "scope": "BRANCH",
+    "industry": "MANUFACTURING",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "EPA_PFAS",
+    "question_text": "Is the company prepared for the EPA TSCA Section 8(a)(7) PFAS reporting period opening January 31, 2027, including the mandatory 2011-2022 lookback?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": {
+      "all": [
+        {
+          "question_id": "MFG_MODEL_01",
+          "op": "eq",
+          "value": "Chemicals and Materials"
+        }
+      ]
+    },
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Conduct an immediate inventory audit to identify PFAS components and aggregate historical supply chain data.",
+    "remediation_horizon_days": 90,
+    "source_doc": "30% questions/Manufacturing & Industrial",
+    "source_ref": "EPA_PFAS",
+    "last_verified_on": null,
+    "review_status": "DRAFT"
+  },
+  {
+    "question_id": "MFG_EXPORT_01",
+    "scope": "BRANCH",
+    "industry": "MANUFACTURING",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "ITAR_EAR",
+    "question_text": "Is the facility registered with the DDTC, and does it maintain a formal technology control plan for ITAR and EAR export compliance?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": {
+      "all": [
+        {
+          "question_id": "MFG_MODEL_01",
+          "op": "eq",
+          "value": "Heavy Industrial / Defense"
+        }
+      ]
+    },
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Appoint an Empowered Official and establish a secure, air-gapped network for ITAR-controlled technical data.",
+    "remediation_horizon_days": 60,
+    "source_doc": "30% questions/Manufacturing & Industrial",
+    "source_ref": "ITAR_EAR",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "MFG_08",
+    "scope": "BRANCH",
+    "industry": "MANUFACTURING",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "RCRA_Waste",
+    "question_text": "Does the facility hold all required EPA Resource Conservation and Recovery Act (RCRA) permits for hazardous waste generation and disposal?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": false
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Audit hazardous waste manifests and verify active RCRA EPA Identification Numbers.",
+    "remediation_horizon_days": 30,
+    "source_doc": "30% questions/Manufacturing & Industrial",
+    "source_ref": "RCRA_Waste",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "MFG_09",
+    "scope": "BRANCH",
+    "industry": "MANUFACTURING",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "ISO_9001",
+    "question_text": "Are the manufacturing facilities ISO 9001 certified for Quality Management Systems, and are regular statistical process control (SPC) audits conducted?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "MEDIUM",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "CERTIFICATE_OR_REPORT",
+    "extraction_hint": {
+      "standard": "ISO Certification",
+      "doc_types": [
+        "iso_certificate"
+      ]
+    },
+    "remediation_action": "Initiate ISO 9001 gap analysis and implement standard operating procedures (SOPs) for continuous quality control.",
+    "remediation_horizon_days": 180,
+    "source_doc": "30% questions/Manufacturing & Industrial",
+    "source_ref": "ISO_9001",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "MFG_10",
+    "scope": "BRANCH",
+    "industry": "MANUFACTURING",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "HUMAN_CAPITAL",
+    "sub_category": "Labor_Relations",
+    "question_text": "Are any segments of the manufacturing workforce unionized, and when do active Collective Bargaining Agreements (CBAs) expire?",
+    "input_type": "TEXT",
+    "options": null,
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "self_attested",
+      "description": "Passed if evidence or self-attestation is provided"
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Evaluate CBA expiration dates for strike risk and assess any unfunded multi-employer pension liabilities.",
+    "remediation_horizon_days": 30,
+    "source_doc": "30% questions/Manufacturing & Industrial",
+    "source_ref": "Labor_Relations",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "MFG_11",
+    "scope": "BRANCH",
+    "industry": "MANUFACTURING",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "CapEx_Maintenance",
+    "question_text": "Is a predictive or preventive maintenance program in place, and what is the current Overall Equipment Effectiveness (OEE) percentage?",
+    "input_type": "PERCENTAGE",
+    "options": null,
+    "depends_on": null,
+    "risk_weight": "MEDIUM",
+    "pass_rule": {
+      "type": "self_attested",
+      "description": "Passed if evidence or self-attestation is provided"
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Deploy IoT sensors for predictive maintenance to reduce unplanned downtime and optimize OEE metrics.",
+    "remediation_horizon_days": 90,
+    "source_doc": "30% questions/Manufacturing & Industrial",
+    "source_ref": "CapEx_Maintenance",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "MFG_12",
+    "scope": "BRANCH",
+    "industry": "MANUFACTURING",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "FIN_PERFORMANCE",
+    "sub_category": "Cost_of_Goods",
+    "question_text": "Are standard costing variances (material, labor, and overhead) analyzed monthly to assess gross margin erosion?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Implement a monthly variance analysis reporting cycle integrated directly with the facility's ERP system.",
+    "remediation_horizon_days": 30,
+    "source_doc": "30% questions/Manufacturing & Industrial",
+    "source_ref": "Cost_of_Goods",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "SAAS_COPYLEFT_01",
+    "scope": "BRANCH",
+    "industry": "SOFTWARE",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "Open_Source",
+    "question_text": "Does the software architecture rely on any viral copyleft open-source licenses (e.g., GPL, AGPL) that could legally force the public disclosure of proprietary source code?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": false
+    },
+    "evidence_type": "CONTRACT_CLAUSE",
+    "extraction_hint": {
+      "cuad_category": "License Grant",
+      "doc_types": [
+        "code_audit",
+        "ip_agreement"
+      ]
+    },
+    "remediation_action": "Run a Software Composition Analysis (SCA) tool to identify and replace all copyleft dependencies.",
+    "remediation_horizon_days": 60,
+    "source_doc": "30% questions/Software (SaaS)",
+    "source_ref": "Open_Source",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "SAAS_PRIVACY_01",
+    "scope": "BRANCH",
+    "industry": "SOFTWARE",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "Data_Privacy",
+    "question_text": "Is the platform fully compliant with the California Privacy Rights Act (CPRA) and GDPR, including automated workflows for Data Subject Access Requests (DSARs) and data deletion?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Publish a compliant privacy policy and automate DSAR deletion and opt-out workflows.",
+    "remediation_horizon_days": 60,
+    "source_doc": "30% questions/Software (SaaS)",
+    "source_ref": "Data_Privacy",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "SAAS_SLA_01",
+    "scope": "BRANCH",
+    "industry": "SOFTWARE",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "TXN_READINESS",
+    "sub_category": "SLA_Liability",
+    "question_text": "Do active enterprise Service Level Agreements (SLAs) contain unlimited financial liability caps or automatic termination clauses for uptime failures?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": {
+      "all": [
+        {
+          "question_id": "SAAS_01",
+          "op": "eq",
+          "value": "B2B Enterprise SaaS"
+        }
+      ]
+    },
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": false
+    },
+    "evidence_type": "CONTRACT_CLAUSE",
+    "extraction_hint": {
+      "cuad_category": "Cap on Liability",
+      "doc_types": [
+        "customer_contract",
+        "msa"
+      ]
+    },
+    "remediation_action": "Renegotiate standard Master Services Agreements (MSAs) to cap financial liability at 12 months of contract value.",
+    "remediation_horizon_days": 60,
+    "source_doc": "30% questions/Software (SaaS)",
+    "source_ref": "SLA_Liability",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "SAAS_API_01",
+    "scope": "BRANCH",
+    "industry": "SOFTWARE",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "API_Dependencies",
+    "question_text": "Are core product functionalities entirely dependent on a single third-party API (e.g., OpenAI, Stripe, AWS) without a fallback or redundancy plan?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": false
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Architect multi-cloud failovers or integrate secondary API providers to eliminate single points of failure.",
+    "remediation_horizon_days": 90,
+    "source_doc": "30% questions/Software (SaaS)",
+    "source_ref": "API_Dependencies",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "SAAS_AIDATA_01",
+    "scope": "BRANCH",
+    "industry": "SOFTWARE",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "AI_Data_Rights",
+    "question_text": "Are proprietary machine learning models trained on user/customer data, and do the Terms of Service (TOS) explicitly grant the right to use this data for training purposes?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": {
+      "all": [
+        {
+          "question_id": "SAAS_01",
+          "op": "eq",
+          "value": "AI/ML Platform"
+        }
+      ]
+    },
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "CONTRACT_CLAUSE",
+    "extraction_hint": {
+      "cuad_category": "IP Ownership Assignment",
+      "doc_types": [
+        "terms_of_service"
+      ]
+    },
+    "remediation_action": "Update TOS to explicitly require opt-in/opt-out consent for model training and implement strict data anonymization protocols.",
+    "remediation_horizon_days": 30,
+    "source_doc": "30% questions/Software (SaaS)",
+    "source_ref": "AI_Data_Rights",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "SAAS_BCPDR_01",
+    "scope": "BRANCH",
+    "industry": "SOFTWARE",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "Disaster_Recovery",
+    "question_text": "Are there defined Disaster Recovery (DR) and Business Continuity Plans (BCP) with documented and tested Recovery Time Objectives (RTO) and Recovery Point Objectives (RPO)?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "MEDIUM",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "POLICY_DOC",
+    "extraction_hint": {
+      "doc_types": [
+        "dr_bcp_policy",
+        "security_policy",
+        "privacy_policy"
+      ]
+    },
+    "remediation_action": "Draft and execute an annual tabletop exercise for a catastrophic server failure to validate RTO/RPO targets.",
+    "remediation_horizon_days": 90,
+    "source_doc": "30% questions/Software (SaaS)",
+    "source_ref": "Disaster_Recovery",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "SAAS_09",
+    "scope": "BRANCH",
+    "industry": "SOFTWARE",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "Data_Encryption",
+    "question_text": "Is all customer data encrypted at rest (AES-256) and in transit (TLS 1.2+), and are encryption keys managed via a secure KMS?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Enforce database field-level encryption and configure a centralized Key Management Service (KMS).",
+    "remediation_horizon_days": 30,
+    "source_doc": "30% questions/Software (SaaS)",
+    "source_ref": "Data_Encryption",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "SAAS_10",
+    "scope": "BRANCH",
+    "industry": "SOFTWARE",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "Access_Controls",
+    "question_text": "Is Role-Based Access Control (RBAC) enforced across all internal systems, requiring Multi-Factor Authentication (MFA) and following the principle of least privilege?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Mandate SSO and MFA for all employee accounts and conduct a quarterly access privilege audit.",
+    "remediation_horizon_days": 30,
+    "source_doc": "30% questions/Software (SaaS)",
+    "source_ref": "Access_Controls",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "SAAS_11",
+    "scope": "BRANCH",
+    "industry": "SOFTWARE",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "LEGAL_IP_REG",
+    "sub_category": "IP_Ownership",
+    "question_text": "Was any portion of the core source code written by offshore contractors or third-party dev shops without a signed, explicit Intellectual Property Assignment Agreement?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "CRITICAL",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "SELF_ATTESTED",
+    "extraction_hint": null,
+    "remediation_action": "Execute retroactive IP Assignment and Work-for-Hire agreements with all historical external contributors.",
+    "remediation_horizon_days": 30,
+    "source_doc": "30% questions/Software (SaaS)",
+    "source_ref": "IP_Ownership",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  },
+  {
+    "question_id": "SAAS_12",
+    "scope": "BRANCH",
+    "industry": "SOFTWARE",
+    "sub_sector": "ALL",
+    "geography": [
+      "USA"
+    ],
+    "stage": [
+      "ALL"
+    ],
+    "dimension": "OPS_TECH_CYBER",
+    "sub_category": "Cyber_Incident_Response",
+    "question_text": "Does the company maintain a formalized Cyber Incident Response Plan (CIRP) detailing escalation procedures and legal notification timelines for data breaches?",
+    "input_type": "BOOLEAN",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "depends_on": null,
+    "risk_weight": "HIGH",
+    "pass_rule": {
+      "type": "bool",
+      "pass_when": true
+    },
+    "evidence_type": "POLICY_DOC",
+    "extraction_hint": {
+      "doc_types": [
+        "dr_bcp_policy",
+        "security_policy",
+        "privacy_policy"
+      ]
+    },
+    "remediation_action": "Formalize a cyber incident playbook with a strict materiality assessment and legal escalation triggers.",
+    "remediation_horizon_days": 60,
+    "source_doc": "30% questions/Software (SaaS)",
+    "source_ref": "Cyber_Incident_Response",
+    "last_verified_on": "2026-09-30",
+    "review_status": "APPROVED"
+  }
+]

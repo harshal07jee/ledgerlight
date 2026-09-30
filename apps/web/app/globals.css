@@ -1,0 +1,64 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..800;1,9..144,300..800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-paper: #F6F3EC;
+  --bg-surface: #FFFFFF;
+  --border-color: #E2DDD2;
+  --ink-text: #16181D;
+  --ink-muted: #5F6470;
+  --accent-primary: #1F4D3F;
+  --accent-hover: #17392F;
+  --accent-light: #E8F0EC;
+  
+  --status-pass: #2F7D57;
+  --status-partial: #B7791F;
+  --status-fail: #B4382F;
+  --status-unverified: #6B7280;
+
+  --font-display: 'Fraunces', serif;
+  --font-ui: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+.dark {
+  --bg-paper: #0F1113;
+  --bg-surface: #181B20;
+  --border-color: #2A2F3A;
+  --ink-text: #EDEDED;
+  --ink-muted: #8E95A5;
+  --accent-primary: #2F7D57;
+  --accent-hover: #3C9A6D;
+  --accent-light: #182A22;
+  
+  --status-pass: #3FA876;
+  --status-partial: #D69E2E;
+  --status-fail: #E53E3E;
+  --status-unverified: #9CA3AF;
+}
+
+body {
+  background-color: var(--bg-paper);
+  color: var(--ink-text);
+  font-family: var(--font-ui);
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tabular numerals for financial figures and scores */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Restrained motion */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

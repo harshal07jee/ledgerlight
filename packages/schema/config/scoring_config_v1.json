@@ -1,0 +1,143 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "config_version": "1.0.0",
+  "name": "Ledgerlight Transaction Weight & Scoring Matrix",
+  "status": "[ASSUMPTION] UNVALIDATED",
+  "disclaimer": "All weights, transaction matrices, and scoring thresholds defined in this configuration file are PROPOSED ASSUMPTIONS for developmental and research benchmarking. They have NOT been validated against empirical transaction outcomes, legal warranty claim databases, or private equity due diligence dispute datasets. They MUST NOT be presented or marketed as industry standards.",
+  "metadata": {
+    "author": "Antigravity Research Engineering",
+    "effective_date": "2026-10-01",
+    "description": "Deterministic scoring configuration matching PRD Section 8 formulas and transaction-type weighting."
+  },
+  "severity_weights": {
+    "CRITICAL": 8,
+    "HIGH": 5,
+    "MEDIUM": 3,
+    "LOW": 1
+  },
+  "severity_weights_reasoning": {
+    "CRITICAL": "Weight 8: Fatal deal-breakers, incurable legal defects, insolvency risks, or major regulatory enforcement bars.",
+    "HIGH": "Weight 5: Significant valuation re-trade triggers, unassigned material IP, single-customer concentration >20%, or recurring margin decay.",
+    "MEDIUM": "Weight 3: Operational deficiencies, missing commercial policies, unverified contract renewals, or second-tier vendor dependencies.",
+    "LOW": "Weight 1: Procedural formalities, minor administrative hygiene, non-material filing lags, or cosmetic documentation gaps."
+  },
+  "partial_score_multiplier": 0.5,
+  "critical_fail_cap": 60.0,
+  "provisional_threshold_pct": 60.0,
+  "transaction_matrices": {
+    "VC_GROWTH_FINANCING": {
+      "GOVERNANCE": 10,
+      "FIN_CONTROLS": 10,
+      "LEGAL_IP_REG": 15,
+      "OPS_TECH_CYBER": 10,
+      "HUMAN_CAPITAL": 5,
+      "TXN_READINESS": 10,
+      "FIN_PERFORMANCE": 15,
+      "PROFIT_CASHFLOW": 10,
+      "REVENUE_QUALITY": 10,
+      "MGMT_DEPTH": 5,
+      "CUSTOMER_MARKET": 5,
+      "INDUSTRY_REG": 10
+    },
+    "M&A_SELL_SIDE": {
+      "GOVERNANCE": 15,
+      "FIN_CONTROLS": 15,
+      "LEGAL_IP_REG": 20,
+      "OPS_TECH_CYBER": 10,
+      "HUMAN_CAPITAL": 10,
+      "TXN_READINESS": 15,
+      "FIN_PERFORMANCE": 10,
+      "PROFIT_CASHFLOW": 10,
+      "REVENUE_QUALITY": 10,
+      "MGMT_DEPTH": 5,
+      "CUSTOMER_MARKET": 5,
+      "INDUSTRY_REG": 15
+    },
+    "IPO_PREP": {
+      "GOVERNANCE": 20,
+      "FIN_CONTROLS": 20,
+      "LEGAL_IP_REG": 15,
+      "OPS_TECH_CYBER": 10,
+      "HUMAN_CAPITAL": 10,
+      "TXN_READINESS": 15,
+      "FIN_PERFORMANCE": 15,
+      "PROFIT_CASHFLOW": 10,
+      "REVENUE_QUALITY": 10,
+      "MGMT_DEPTH": 10,
+      "CUSTOMER_MARKET": 5,
+      "INDUSTRY_REG": 15
+    },
+    "DEBT_FINANCING": {
+      "GOVERNANCE": 10,
+      "FIN_CONTROLS": 20,
+      "LEGAL_IP_REG": 10,
+      "OPS_TECH_CYBER": 5,
+      "HUMAN_CAPITAL": 5,
+      "TXN_READINESS": 10,
+      "FIN_PERFORMANCE": 15,
+      "PROFIT_CASHFLOW": 25,
+      "REVENUE_QUALITY": 15,
+      "MGMT_DEPTH": 5,
+      "CUSTOMER_MARKET": 5,
+      "INDUSTRY_REG": 10
+    }
+  },
+  "row_reasoning_by_transaction_type": {
+    "VC_GROWTH_FINANCING": {
+      "GOVERNANCE": "[ASSUMPTION] Weight 10: Venture investors require clean capitalization tables, clear voting rights, and predictable board composition before issuing preferred stock.",
+      "FIN_CONTROLS": "[ASSUMPTION] Weight 10: Historical financial hygiene and GAAP/management accounting provide baseline validation for valuation multiples.",
+      "LEGAL_IP_REG": "[ASSUMPTION] Weight 15: Clean IP assignment from all founders and key employees is an existential diligence check for venture scalability.",
+      "OPS_TECH_CYBER": "[ASSUMPTION] Weight 10: Tech stack architecture, cloud redundancy, and basic cyber hygiene guard against immediate platform disruption.",
+      "HUMAN_CAPITAL": "[ASSUMPTION] Weight 5: Key personnel contracts and option pools matter, but early venture rounds anticipate significant team expansion.",
+      "TXN_READINESS": "[ASSUMPTION] Weight 10: Organized virtual data rooms and NVCA agreement readiness expedite closing velocity.",
+      "FIN_PERFORMANCE": "[ASSUMPTION] Weight 15: High top-line growth rate and ARR expansion velocity are primary return drivers in growth rounds.",
+      "PROFIT_CASHFLOW": "[ASSUMPTION] Weight 10: Cash burn rate and runway viability (post-money runway target >= 18 months) are essential to prevent premature insolvencies.",
+      "REVENUE_QUALITY": "[ASSUMPTION] Weight 10: Net Revenue Retention (NRR) and moderate customer concentration ensure scalable unit economics.",
+      "MGMT_DEPTH": "[ASSUMPTION] Weight 5: Founding visionary presence outweighs deep middle management structure at this stage.",
+      "CUSTOMER_MARKET": "[ASSUMPTION] Weight 5: Product-market fit is presumed if growth metrics hold, though market defensibility remains relevant.",
+      "INDUSTRY_REG": "[ASSUMPTION] Weight 10: Domain-specific regulatory compliance (HIPAA, FinTech licensing, FDA clearance) prevents sudden operational shutdown."
+    },
+    "M&A_SELL_SIDE": {
+      "GOVERNANCE": "[ASSUMPTION] Weight 15: Acquirers must ensure unambiguous title to stock/assets, drag-along enforceability, and absence of minority shareholder blocking rights.",
+      "FIN_CONTROLS": "[ASSUMPTION] Weight 15: Quality of Earnings (QofE), revenue recognition, and audited financial statements directly determine purchase price adjustments.",
+      "LEGAL_IP_REG": "[ASSUMPTION] Weight 20: Strategic acquirers assume predecessor liabilities; unassigned IP, patent litigation, or uncapped indemnities are primary deal killers.",
+      "OPS_TECH_CYBER": "[ASSUMPTION] Weight 10: Acquirers review technical debt, viral open-source (GPL/AGPL) contamination, and cybersecurity breach histories.",
+      "HUMAN_CAPITAL": "[ASSUMPTION] Weight 10: Retention of key technical/commercial talent, change-of-control severance triggers, and non-compete enforceability directly affect deal value.",
+      "TXN_READINESS": "[ASSUMPTION] Weight 15: Disclosure schedules and rep-and-warranty coverage dictate escrow holdbacks and closing speed.",
+      "FIN_PERFORMANCE": "[ASSUMPTION] Weight 10: Historical revenue stability and customer stickiness substantiate deal synergy projections.",
+      "PROFIT_CASHFLOW": "[ASSUMPTION] Weight 10: EBITDA normalization, working capital peg, and cash conversion ratios set baseline enterprise value.",
+      "REVENUE_QUALITY": "[ASSUMPTION] Weight 10: Contract assignability upon change-of-control and top-customer retention are critical acquirer risks.",
+      "MGMT_DEPTH": "[ASSUMPTION] Weight 5: Acquirers often replace corporate overhead, though business unit continuity remains relevant.",
+      "CUSTOMER_MARKET": "[ASSUMPTION] Weight 5: Market overlap and competitive dynamics are reviewed during antitrust and strategic valuation phases.",
+      "INDUSTRY_REG": "[ASSUMPTION] Weight 15: Regulatory license transferability and environmental/FDA/financial compliance liabilities directly transfer to buyer."
+    },
+    "IPO_PREP": {
+      "GOVERNANCE": "[ASSUMPTION] Weight 20: Public listings require SOX-compliant independent directors, audit/compensation committees, and institutional shareholder governance standards.",
+      "FIN_CONTROLS": "[ASSUMPTION] Weight 20: PCAOB audited financials, rigorous internal controls over financial reporting (ICFR), and quarterly close discipline are mandatory.",
+      "LEGAL_IP_REG": "[ASSUMPTION] Weight 15: SEC prospectus disclosures require comprehensive disclosure of all material litigation, regulatory inquiries, and IP defense.",
+      "OPS_TECH_CYBER": "[ASSUMPTION] Weight 10: Public company cyber disclosure rules (SEC Item 106) and enterprise disaster recovery are scrutinized by underwriters.",
+      "HUMAN_CAPITAL": "[ASSUMPTION] Weight 10: Executive compensation governance, Section 16 compliance, and public equity incentive plans (ESOP) require strict institutionalization.",
+      "TXN_READINESS": "[ASSUMPTION] Weight 15: Registration statement (S-1 / F-1) readiness, comfort letter backup, and auditor consensus govern listing timetables.",
+      "FIN_PERFORMANCE": "[ASSUMPTION] Weight 15: Predictable quarterly earnings guidance and consistent revenue cadence are essential for public market trading stability.",
+      "PROFIT_CASHFLOW": "[ASSUMPTION] Weight 10: Demonstrable pathway to GAAP operating profitability and sustainable operating leverage are required by public investors.",
+      "REVENUE_QUALITY": "[ASSUMPTION] Weight 10: Highly diversified customer base with long-term recurring revenue commitments to withstand macroeconomic cycles.",
+      "MGMT_DEPTH": "[ASSUMPTION] Weight 10: Experienced public company executive team (CFO, General Counsel, Head of IR) is mandatory for underwriter syndication.",
+      "CUSTOMER_MARKET": "[ASSUMPTION] Weight 5: Defensible industry market leadership and TAM expansion story support public multiples.",
+      "INDUSTRY_REG": "[ASSUMPTION] Weight 15: Strict regulatory standing across all operating jurisdictions with zero unresolved formal consent decrees or warning letters."
+    },
+    "DEBT_FINANCING": {
+      "GOVERNANCE": "[ASSUMPTION] Weight 10: Corporate authority to incur senior secured debt, pledge assets, and execute negative pledge covenants.",
+      "FIN_CONTROLS": "[ASSUMPTION] Weight 20: Borrowing base reporting integrity, monthly accounting close speed, and strict financial covenant calculations.",
+      "LEGAL_IP_REG": "[ASSUMPTION] Weight 10: Ability to grant first-priority perfected security interests across IP and commercial contracts without counterparty consent blocks.",
+      "OPS_TECH_CYBER": "[ASSUMPTION] Weight 5: Operational continuity ensures ongoing invoice generation and collateral servicing.",
+      "HUMAN_CAPITAL": "[ASSUMPTION] Weight 5: Basic key-person insurance and team continuity to service operational commitments.",
+      "TXN_READINESS": "[ASSUMPTION] Weight 10: Detailed financial models, collateral schedules, and lender legal opinion readiness.",
+      "FIN_PERFORMANCE": "[ASSUMPTION] Weight 15: Predictable gross revenue to ensure debt covenant compliance and interest coverage.",
+      "PROFIT_CASHFLOW": "[ASSUMPTION] Weight 25: Free cash flow, Debt Service Coverage Ratio (DSCR), and fixed charge coverage are the supreme criteria for lenders.",
+      "REVENUE_QUALITY": "[ASSUMPTION] Weight 15: Accounts receivable aging, creditworthiness of customers, and low customer concentration support collateral liquidation value.",
+      "MGMT_DEPTH": "[ASSUMPTION] Weight 5: Financial management discipline to manage working capital and debt covenants.",
+      "CUSTOMER_MARKET": "[ASSUMPTION] Weight 5: Ongoing commercial relevance to avoid rapid customer contract attrition.",
+      "INDUSTRY_REG": "[ASSUMPTION] Weight 10: Maintenance of all licenses required to operate and generate collateral revenue without regulatory revoking."
+    }
+  }
+}

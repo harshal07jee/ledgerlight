@@ -1,0 +1,70 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: ledgerlight-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ledgerlight}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ledgerlight_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-ledgerlight_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ledgerlight} -d ${POSTGRES_DB:-ledgerlight_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: ledgerlight-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: ledgerlight-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-ledgerlight}:${POSTGRES_PASSWORD:-ledgerlight_secret}@postgres:5432/${POSTGRES_DB:-ledgerlight_db}
+      REDIS_URL: redis://redis:6379/0
+      PORT: 8000
+    ports:
+      - "8000:8000"
+    command: >
+      sh -c "python -m apps.api.seeds.db_seed && uvicorn apps.api.main:app --host 0.0.0.0 --port 8000"
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: ledgerlight-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+      PORT: 3000
+    ports:
+      - "3000:3000"
+
+volumes:
+  postgres_data:
+  redis_data:

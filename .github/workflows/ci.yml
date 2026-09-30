@@ -1,0 +1,78 @@
+name: CI Test Suite
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  backend-tests:
+    name: Backend Tests (PostgreSQL 16)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ledgerlight
+          POSTGRES_PASSWORD: ledgerlight_secret
+          POSTGRES_DB: ledgerlight_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r apps/api/requirements.txt
+          pip install pytest pytest-asyncio
+
+      - name: Seed Database on PostgreSQL
+        env:
+          DATABASE_URL: postgresql://ledgerlight:ledgerlight_secret@localhost:5432/ledgerlight_db
+        run: |
+          python apps/api/seeds/db_seed.py
+
+      - name: Run Pytest against PostgreSQL Service Container
+        env:
+          DATABASE_URL: postgresql://ledgerlight:ledgerlight_secret@localhost:5432/ledgerlight_db
+        run: |
+          python -m pytest -v
+
+  frontend-build:
+    name: Frontend Build & Typecheck
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Frontend Dependencies
+        working-directory: ./apps/web
+        run: npm ci || npm install
+
+      - name: Build Next.js Application
+        working-directory: ./apps/web
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:8000
+        run: npm run build
