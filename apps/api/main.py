@@ -5,13 +5,16 @@ Implements M0 foundations, M1 Question Bank Admin APIs, and M2 Questionnaire wit
 import os
 import uuid
 import hashlib
+import logging
 from datetime import datetime
 from typing import List, Optional, Dict, Any
-from fastapi import FastAPI, Depends, HTTPException, Query, Response, Request, status
+from fastapi import FastAPI, Depends, HTTPException, Query, Response, Request, status, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from enum import Enum
 from pydantic import BaseModel, field_validator
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger("ledgerlight.main")
 
 from apps.api.database import get_db, engine, Base
 from apps.api.core.auth import (
@@ -38,11 +41,24 @@ from apps.api.models import (
     Answer,
     ScoreRun,
     ScoreTraceRow,
-    RoadmapTask
+    RoadmapTask,
+    DataRoomDocument,
+    ProposedExtraction
 )
 from apps.api.core.scoring import compute_readiness_score, load_scoring_config
 from apps.api.core.roadmap import generate_roadmap_tasks_data, compute_reassessment_delta
 from apps.api.core.pdf_export import generate_assessment_pdf
+from apps.api.core.ingest import (
+    validate_file_security,
+    validate_and_extract_zip,
+    parse_document,
+    sweep_temp_files,
+    IngestSecurityError
+)
+from apps.api.core.extractors import (
+    extract_answer_for_question,
+    compute_extraction_coverage_report
+)
 from packages.schema.models import QuestionSchema, ReviewStatusEnum
 
 # Initialize tables
@@ -352,10 +368,21 @@ def compute_assessment_questions(
         )
     all_q_models = q_query.order_by(Question.question_id).all()
 
-    # 2. Fetch existing answers for assessment
+    # 2. Fetch existing answers and proposed extractions for assessment
     existing_answers = db.query(Answer).filter(Answer.assessment_id == assessment.id).all()
     answers_dict = {a.question_id: a.value for a in existing_answers if a.value is not None}
     answers_by_qid = {a.question_id: a for a in existing_answers}
+
+    extractions = db.query(ProposedExtraction).filter(ProposedExtraction.assessment_id == assessment.id).all()
+    extractions_by_qid = {e.question_id: e for e in extractions}
+
+    # Auto-filled or confirmed extractions supply answers for dependencies if not manually answered
+    for ext in extractions:
+        if ext.question_id not in answers_dict:
+            if ext.user_action == "confirmed" and ext.confirmed_value is not None:
+                answers_dict[ext.question_id] = ext.confirmed_value
+            elif ext.status == "AUTO_FILLED" and ext.user_action != "rejected" and ext.answer_value is not None:
+                answers_dict[ext.question_id] = ext.answer_value
 
     # 3. Build lookup maps
     all_questions_by_id = {q.question_id: q_to_dict(q) for q in all_q_models}
@@ -374,10 +401,44 @@ def compute_assessment_questions(
         q_dict = dict(all_questions_by_id[q.question_id])
         if is_question_applicable(q_dict, company_profile, answers_dict, all_questions_by_id):
             ans = answers_by_qid.get(q.question_id)
-            q_dict["current_answer"] = ans.value if ans else None
-            q_dict["notes"] = ans.notes if ans else None
-            q_dict["user_action"] = ans.user_action if ans else None
-            q_dict["updated_at"] = ans.updated_at.isoformat() if ans else None
+            ext = extractions_by_qid.get(q.question_id)
+
+            if ans and ans.value is not None:
+                q_dict["current_answer"] = ans.value
+                q_dict["notes"] = ans.notes
+                q_dict["user_action"] = ans.user_action or "manual"
+                q_dict["updated_at"] = ans.updated_at.isoformat()
+            elif ext and ext.user_action == "confirmed":
+                q_dict["current_answer"] = ext.confirmed_value if ext.confirmed_value is not None else ext.answer_value
+                q_dict["notes"] = f"Confirmed extraction ({ext.source_file}, p. {ext.page})"
+                q_dict["user_action"] = "confirmed"
+                q_dict["updated_at"] = ext.updated_at.isoformat()
+            elif ext and ext.status == "AUTO_FILLED" and ext.user_action != "rejected":
+                q_dict["current_answer"] = ext.answer_value
+                q_dict["notes"] = f"Auto-filled from {ext.source_file} (p. {ext.page})"
+                q_dict["user_action"] = "auto"
+                q_dict["updated_at"] = ext.updated_at.isoformat()
+            else:
+                q_dict["current_answer"] = None
+                q_dict["notes"] = None
+                q_dict["user_action"] = None
+                q_dict["updated_at"] = None
+
+            if ext:
+                q_dict["extraction"] = {
+                    "id": ext.id,
+                    "answer_value": ext.answer_value,
+                    "confidence": ext.confidence,
+                    "status": ext.status,
+                    "method": ext.method,
+                    "source_file": ext.source_file,
+                    "page": ext.page,
+                    "snippet": ext.snippet,
+                    "formula": ext.formula,
+                    "formula_inputs": ext.formula_inputs,
+                    "user_action": ext.user_action,
+                    "confirmed_value": ext.confirmed_value
+                }
             applicable_questions.append(q_dict)
 
     # 5. Group by dimension
@@ -927,11 +988,32 @@ def calculate_assessment_score(
         a.question_id: {
             "value": a.value,
             "notes": a.notes,
-            "user_action": a.user_action,
+            "user_action": a.user_action or "manual",
             "evidence_file_id": a.evidence_file_id
         }
         for a in existing_answers
     }
+
+    # Integrate extractions: confirmed or AUTO_FILLED
+    extractions = db.query(ProposedExtraction).filter(ProposedExtraction.assessment_id == assessment_id).all()
+    for ext in extractions:
+        qid = ext.question_id
+        if qid not in answers_map or answers_map[qid]["value"] is None:
+            if ext.user_action == "confirmed":
+                val = ext.confirmed_value if ext.confirmed_value is not None else ext.answer_value
+                answers_map[qid] = {
+                    "value": val,
+                    "notes": f"Confirmed extraction from {ext.source_file or 'data room'} (p. {ext.page or 1})",
+                    "user_action": "confirmed",
+                    "evidence_snippet": ext.snippet
+                }
+            elif ext.status == "AUTO_FILLED" and ext.user_action != "rejected":
+                answers_map[qid] = {
+                    "value": ext.answer_value,
+                    "notes": f"Auto-filled from {ext.source_file or 'data room'} (p. {ext.page or 1})",
+                    "user_action": "auto",
+                    "evidence_snippet": ext.snippet
+                }
 
     # 4. Assessment profile
     company_profile = {
@@ -1686,4 +1768,497 @@ def get_admin_coverage_metrics(
         "manual_required": manual,
         "manual_required_pct": round((manual / total * 100), 1) if total else 0,
         "by_evidence_type": by_evidence
+    }
+
+
+# --- M5 Data Room & Extraction Endpoints (PRD Section 7 & FR-3, FR-4) ---
+
+class UpdateDocTypeRequest(BaseModel):
+    file_type: str
+
+
+class ConfirmExtractionRequest(BaseModel):
+    confirmed_value: Optional[Any] = None
+
+
+class BulkConfirmRequest(BaseModel):
+    extraction_ids: Optional[List[str]] = None
+    min_confidence: Optional[float] = 0.85
+
+
+@app.post("/assessments/{assessment_id}/documents/upload")
+async def upload_documents(
+    assessment_id: str,
+    files: List[UploadFile] = File(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Uploads and processes documents for an assessment data room (M5).
+    - Validates MIME and magic bytes, size limits, rejects executables.
+    - Blocks zip bombs and path traversal.
+    - Processes in-memory, deletes temp files immediately, keeps only metadata & snippets <= 500 chars.
+    - Deterministic extraction on applicable questions.
+    """
+    assessment = verify_assessment_access(assessment_id, current_user, db, require_edit=True)
+
+    uploaded_docs: List[DataRoomDocument] = []
+    parsed_docs: List[ParsedDocument] = []
+
+    for file in files:
+        try:
+            content = await file.read()
+            filename = file.filename or "unknown"
+
+            # 1. Detect if it is a ZIP archive bundle
+            is_zip = filename.lower().endswith(".zip")
+
+            if is_zip:
+                # Security validation on zip wrapper
+                validate_file_security(filename, content)
+                extracted_items = validate_and_extract_zip(content)
+                del content  # In-memory discard of archive
+
+                for rel_name, item_bytes in extracted_items:
+                    validate_file_security(rel_name, item_bytes)
+                    item_sha = hashlib.sha256(item_bytes).hexdigest()
+
+                    parsed = parse_document(rel_name, item_bytes)
+                    del item_bytes  # Immediate in-memory discard of raw bytes
+
+                    parsed_docs.append(parsed)
+
+                    doc = DataRoomDocument(
+                        assessment_id=assessment.id,
+                        org_id=assessment.org_id,
+                        filename=rel_name,
+                        file_type=parsed.file_type or "unclassified",
+                        file_size=parsed.file_size or 0,
+                        sha256=item_sha,
+                        mime_type=parsed.mime_type or "application/octet-stream",
+                        page_count=parsed.page_count or len(parsed.pages),
+                        status="processed",
+                        stage="classified"
+                    )
+                    db.add(doc)
+                    db.flush()
+                    uploaded_docs.append(doc)
+            else:
+                # Single document
+                validate_file_security(filename, content)
+                file_sha = hashlib.sha256(content).hexdigest()
+
+                parsed = parse_document(filename, content)
+                del content  # Immediate in-memory discard of raw file
+
+                parsed_docs.append(parsed)
+
+                doc = DataRoomDocument(
+                    assessment_id=assessment.id,
+                    org_id=assessment.org_id,
+                    filename=filename,
+                    file_type=parsed.file_type or "unclassified",
+                    file_size=parsed.file_size or 0,
+                    sha256=file_sha,
+                    mime_type=parsed.mime_type or "application/octet-stream",
+                    page_count=parsed.page_count or len(parsed.pages),
+                    status="processed",
+                    stage="classified"
+                )
+                db.add(doc)
+                db.flush()
+                uploaded_docs.append(doc)
+
+        except IngestSecurityError as se:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(se))
+        except ValueError as ve:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(ve))
+        except Exception as e:
+            logger.error("Upload processing error for assessment %s: %s", assessment_id, str(e), exc_info=True)
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Processing error: {str(e)}")
+
+    # Run deterministic extractions on all applicable questions for this assessment
+    q_data = compute_assessment_questions(assessment, db)
+    applicable_questions = q_data["questions"]
+
+    # Map filename to doc_id for referencing
+    doc_id_map = {d.filename: d.id for d in uploaded_docs}
+
+    created_extractions_count = 0
+    for q in applicable_questions:
+        ext = extract_answer_for_question(q, parsed_docs, assessment_id=assessment.id)
+        if ext and ext["status"] in ("AUTO_FILLED", "NEEDS_CONFIRMATION"):
+            qid = q["question_id"]
+            matched_doc_id = doc_id_map.get(ext.get("source_file"))
+
+            existing = (
+                db.query(ProposedExtraction)
+                .filter(
+                    ProposedExtraction.assessment_id == assessment.id,
+                    ProposedExtraction.question_id == qid
+                )
+                .first()
+            )
+
+            if existing:
+                if existing.user_action != "confirmed":
+                    existing.answer_value = ext["answer_value"]
+                    existing.confidence = ext["confidence"]
+                    existing.status = ext["status"]
+                    existing.method = ext["method"]
+                    existing.source_file = ext.get("source_file")
+                    existing.page = ext.get("page")
+                    existing.char_start = ext.get("char_start")
+                    existing.char_end = ext.get("char_end")
+                    existing.snippet = ext.get("snippet")
+                    existing.formula = ext.get("formula")
+                    existing.formula_inputs = ext.get("formula_inputs")
+                    existing.document_id = matched_doc_id
+                    existing.updated_at = datetime.utcnow()
+            else:
+                new_ext = ProposedExtraction(
+                    assessment_id=assessment.id,
+                    document_id=matched_doc_id,
+                    question_id=qid,
+                    answer_value=ext["answer_value"],
+                    confidence=ext["confidence"],
+                    status=ext["status"],
+                    method=ext["method"],
+                    source_file=ext.get("source_file"),
+                    page=ext.get("page"),
+                    char_start=ext.get("char_start"),
+                    char_end=ext.get("char_end"),
+                    snippet=ext.get("snippet"),
+                    formula=ext.get("formula"),
+                    formula_inputs=ext.get("formula_inputs"),
+                    user_action="pending"
+                )
+                db.add(new_ext)
+                created_extractions_count += 1
+
+    # Cleanup temp sweeper
+    sweep_temp_files()
+
+    db.commit()
+
+    return {
+        "status": "success",
+        "documents_uploaded": len(uploaded_docs),
+        "extractions_found": created_extractions_count,
+        "documents": [
+            {
+                "id": d.id,
+                "filename": d.filename,
+                "file_type": d.file_type,
+                "file_size": d.file_size,
+                "sha256": d.sha256,
+                "page_count": d.page_count,
+                "status": d.status,
+                "stage": d.stage
+            }
+            for d in uploaded_docs
+        ]
+    }
+
+
+@app.get("/assessments/{assessment_id}/documents")
+def list_documents(
+    assessment_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Lists data room documents for an assessment."""
+    assessment = verify_assessment_access(assessment_id, current_user, db)
+    docs = db.query(DataRoomDocument).filter(DataRoomDocument.assessment_id == assessment.id).all()
+    return {
+        "assessment_id": assessment.id,
+        "documents": [
+            {
+                "id": d.id,
+                "filename": d.filename,
+                "file_type": d.file_type,
+                "file_size": d.file_size,
+                "sha256": d.sha256,
+                "mime_type": d.mime_type,
+                "page_count": d.page_count,
+                "status": d.status,
+                "stage": d.stage,
+                "error_message": d.error_message,
+                "created_at": d.created_at.isoformat()
+            }
+            for d in docs
+        ]
+    }
+
+
+@app.patch("/assessments/{assessment_id}/documents/{document_id}")
+def update_document_classification(
+    assessment_id: str,
+    document_id: str,
+    req: UpdateDocTypeRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Corrects heuristic document classification type."""
+    assessment = verify_assessment_access(assessment_id, current_user, db, require_edit=True)
+    doc = db.query(DataRoomDocument).filter(
+        DataRoomDocument.id == document_id,
+        DataRoomDocument.assessment_id == assessment.id
+    ).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    doc.file_type = req.file_type.strip().lower()
+    doc.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(doc)
+    return {
+        "status": "updated",
+        "id": doc.id,
+        "filename": doc.filename,
+        "file_type": doc.file_type
+    }
+
+
+@app.delete("/assessments/{assessment_id}/documents/{document_id}")
+def delete_document(
+    assessment_id: str,
+    document_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Deletes document and its associated proposed extractions."""
+    assessment = verify_assessment_access(assessment_id, current_user, db, require_edit=True)
+    doc = db.query(DataRoomDocument).filter(
+        DataRoomDocument.id == document_id,
+        DataRoomDocument.assessment_id == assessment.id
+    ).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    # Remove extractions tied to this document
+    db.query(ProposedExtraction).filter(
+        ProposedExtraction.assessment_id == assessment.id,
+        ProposedExtraction.document_id == document_id
+    ).delete()
+
+    db.delete(doc)
+    db.commit()
+    return {"status": "deleted", "id": document_id}
+
+
+@app.get("/assessments/{assessment_id}/extractions")
+def list_extractions(
+    assessment_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Lists all proposed extractions with confidence, source snippet, and formula."""
+    assessment = verify_assessment_access(assessment_id, current_user, db)
+    extractions = (
+        db.query(ProposedExtraction)
+        .filter(ProposedExtraction.assessment_id == assessment.id)
+        .all()
+    )
+    return {
+        "assessment_id": assessment.id,
+        "extractions": [
+            {
+                "id": e.id,
+                "question_id": e.question_id,
+                "document_id": e.document_id,
+                "answer_value": e.answer_value,
+                "confidence": e.confidence,
+                "status": e.status,
+                "method": e.method,
+                "source_file": e.source_file,
+                "page": e.page,
+                "char_start": e.char_start,
+                "char_end": e.char_end,
+                "snippet": e.snippet,
+                "formula": e.formula,
+                "formula_inputs": e.formula_inputs,
+                "user_action": e.user_action,
+                "confirmed_value": e.confirmed_value,
+                "created_at": e.created_at.isoformat(),
+                "updated_at": e.updated_at.isoformat()
+            }
+            for e in extractions
+        ]
+    }
+
+
+@app.post("/assessments/{assessment_id}/extractions/{extraction_id}/confirm")
+def confirm_extraction(
+    assessment_id: str,
+    extraction_id: str,
+    body: Optional[ConfirmExtractionRequest] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Confirms an extraction proposal.
+    Optionally accepts a corrected confirmed_value.
+    Synchronizes into assessment answers map for scoring.
+    """
+    assessment = verify_assessment_access(assessment_id, current_user, db, require_edit=True)
+    ext = (
+        db.query(ProposedExtraction)
+        .filter(
+            ProposedExtraction.id == extraction_id,
+            ProposedExtraction.assessment_id == assessment.id
+        )
+        .first()
+    )
+    if not ext:
+        raise HTTPException(status_code=404, detail="Extraction not found")
+
+    ext.user_action = "confirmed"
+    if body and body.confirmed_value is not None:
+        ext.confirmed_value = body.confirmed_value
+    else:
+        ext.confirmed_value = ext.answer_value
+    ext.updated_at = datetime.utcnow()
+
+    # Also update Answer table
+    ans = db.query(Answer).filter(
+        Answer.assessment_id == assessment.id,
+        Answer.question_id == ext.question_id
+    ).first()
+    if ans:
+        ans.value = ext.confirmed_value
+        ans.user_action = "confirmed"
+        ans.notes = f"Confirmed extraction from {ext.source_file or 'data room'} (p. {ext.page or 1})"
+        ans.updated_at = datetime.utcnow()
+    else:
+        ans = Answer(
+            assessment_id=assessment.id,
+            question_id=ext.question_id,
+            value=ext.confirmed_value,
+            user_action="confirmed",
+            notes=f"Confirmed extraction from {ext.source_file or 'data room'} (p. {ext.page or 1})"
+        )
+        db.add(ans)
+
+    db.commit()
+    db.refresh(ext)
+
+    return {
+        "status": "confirmed",
+        "id": ext.id,
+        "question_id": ext.question_id,
+        "confirmed_value": ext.confirmed_value,
+        "user_action": ext.user_action
+    }
+
+
+@app.post("/assessments/{assessment_id}/extractions/{extraction_id}/reject")
+def reject_extraction(
+    assessment_id: str,
+    extraction_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Rejects an extraction proposal; marks it rejected so it does not auto-score."""
+    assessment = verify_assessment_access(assessment_id, current_user, db, require_edit=True)
+    ext = (
+        db.query(ProposedExtraction)
+        .filter(
+            ProposedExtraction.id == extraction_id,
+            ProposedExtraction.assessment_id == assessment.id
+        )
+        .first()
+    )
+    if not ext:
+        raise HTTPException(status_code=404, detail="Extraction not found")
+
+    ext.user_action = "rejected"
+    ext.updated_at = datetime.utcnow()
+
+    # If Answer table was populated automatically from this, reset value to None
+    ans = db.query(Answer).filter(
+        Answer.assessment_id == assessment.id,
+        Answer.question_id == ext.question_id
+    ).first()
+    if ans and ans.user_action in ("auto", "confirmed"):
+        ans.value = None
+        ans.user_action = "manual"
+        ans.notes = "Extraction rejected by user"
+        ans.updated_at = datetime.utcnow()
+
+    db.commit()
+    return {"status": "rejected", "id": ext.id}
+
+
+@app.post("/assessments/{assessment_id}/extractions/bulk-confirm")
+def bulk_confirm_extractions(
+    assessment_id: str,
+    req: BulkConfirmRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Bulk confirms proposed extractions."""
+    assessment = verify_assessment_access(assessment_id, current_user, db, require_edit=True)
+    query = db.query(ProposedExtraction).filter(
+        ProposedExtraction.assessment_id == assessment.id,
+        ProposedExtraction.user_action == "pending"
+    )
+
+    if req.extraction_ids:
+        query = query.filter(ProposedExtraction.id.in_(req.extraction_ids))
+    elif req.min_confidence is not None:
+        query = query.filter(ProposedExtraction.confidence >= req.min_confidence)
+
+    pending_items = query.all()
+    confirmed_count = 0
+
+    for ext in pending_items:
+        ext.user_action = "confirmed"
+        ext.confirmed_value = ext.answer_value
+        ext.updated_at = datetime.utcnow()
+
+        ans = db.query(Answer).filter(
+            Answer.assessment_id == assessment.id,
+            Answer.question_id == ext.question_id
+        ).first()
+        if ans:
+            ans.value = ext.confirmed_value
+            ans.user_action = "confirmed"
+            ans.notes = f"Bulk-confirmed extraction from {ext.source_file or 'data room'}"
+            ans.updated_at = datetime.utcnow()
+        else:
+            ans = Answer(
+                assessment_id=assessment.id,
+                question_id=ext.question_id,
+                value=ext.confirmed_value,
+                user_action="confirmed",
+                notes=f"Bulk-confirmed extraction from {ext.source_file or 'data room'}"
+            )
+            db.add(ans)
+        confirmed_count += 1
+
+    db.commit()
+    return {
+        "status": "success",
+        "confirmed_count": confirmed_count
+    }
+
+
+@app.get("/assessments/{assessment_id}/extraction-coverage")
+def get_assessment_extraction_coverage(
+    assessment_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Returns honest coverage report:
+    How many scored questions are auto-extractable vs manual.
+    Never rounded up.
+    """
+    assessment = verify_assessment_access(assessment_id, current_user, db)
+    q_data = compute_assessment_questions(assessment, db)
+    coverage = compute_extraction_coverage_report(q_data["questions"])
+    return {
+        "assessment_id": assessment.id,
+        "coverage": coverage
     }

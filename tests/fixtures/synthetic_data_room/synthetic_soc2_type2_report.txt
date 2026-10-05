@@ -1,0 +1,14 @@
+[SYNTHETIC TEST DATA - NOT REAL AUDIT REPORT]
+INDEPENDENT SERVICE AUDITOR'S REPORT ON CONTROLS RELEVANT TO SECURITY AND AVAILABILITY
+Standard: AICPA Trust Services Criteria (SOC 2 Type II)
+Target Service Organization: Acme Technology Holdings
+Audit Firm: Grant & Sterling LLP (Certified Public Accountants)
+Report Date: January 30, 2025
+Testing Period: January 1, 2024 to December 31, 2024
+
+Scope of Examination:
+We have examined Acme Technology Holdings' description of its cloud readiness platform throughout the period January 1, 2024 to December 31, 2024.
+Opinion:
+In our opinion, in all material respects, based on the criteria described in Acme's description:
+a. The description fairly presents the platform system that was designed and implemented throughout the period.
+b. The controls stated in the description were suitably designed and operated effectively to provide reasonable assurance that the service commitments and system requirements were achieved based on the applicable Trust Services Criteria (Security and Availability).

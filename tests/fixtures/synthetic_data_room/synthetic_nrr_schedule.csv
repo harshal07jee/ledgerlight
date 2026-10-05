@@ -1,0 +1,8 @@
+# [SYNTHETIC TEST DATA - NOT REAL DATA]
+ARR Component,Amount USD,Percentage
+Beginning ARR,8000000,100.0
+Expansion ARR,1400000,17.5
+Contraction ARR,-200000,-2.5
+Churn ARR,-400000,-5.0
+Ending ARR,8800000,110.0
+Net Revenue Retention (NRR),8800000,110.0

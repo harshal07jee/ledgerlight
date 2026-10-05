@@ -274,6 +274,20 @@ export default function AssessmentWorkspacePage() {
             </div>
 
             <Link
+              href={`/assessment/${assessmentId}/data-room`}
+              className="rounded-lg border border-[#E2DDD2] bg-[#FFFFFF] px-3 py-1.5 font-mono text-xs font-medium text-[#16181D] hover:bg-[#F6F3EC] transition-colors"
+            >
+              Data Room
+            </Link>
+
+            <Link
+              href={`/assessment/${assessmentId}/verify`}
+              className="rounded-lg border border-[#1F4D3F] bg-[#E8F0EC] px-3 py-1.5 font-mono text-xs font-semibold text-[#1F4D3F] hover:bg-[#1F4D3F] hover:text-white transition-colors"
+            >
+              Verify Extractions
+            </Link>
+
+            <Link
               href={`/assessment/${assessmentId}/report`}
               className="rounded-lg bg-[#1F4D3F] px-3.5 py-1.5 font-mono text-xs font-semibold text-white hover:bg-[#17392F] transition-colors shadow-xs flex items-center gap-1.5"
             >
