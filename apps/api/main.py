@@ -9,6 +9,7 @@ import logging
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 from fastapi import FastAPI, Depends, HTTPException, Query, Response, Request, status, UploadFile, File
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from enum import Enum
 from pydantic import BaseModel, field_validator
@@ -26,7 +27,9 @@ from apps.api.core.auth import (
     record_failed_login,
     reset_failed_login,
     verify_assessment_access,
-    verify_org_access
+    verify_org_access,
+    create_session_token,
+    revoke_session_token
 )
 from apps.api.core.dependencies import is_question_applicable
 from apps.api.models import (
@@ -84,6 +87,55 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# CSRF protection middleware for cookie-authenticated state-changing requests (Requirement 8)
+ALLOWED_CSRF_ORIGINS = {
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "http://testserver",
+    os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/"),
+}
+
+@app.middleware("http")
+async def csrf_protect_middleware(request: Request, call_next):
+    # Only state-changing methods are subject to CSRF protection
+    if request.method in ("POST", "PUT", "PATCH", "DELETE"):
+        has_cookie = "ledgerlight_session" in request.cookies
+        auth_header = request.headers.get("authorization", "")
+        has_bearer = auth_header.lower().startswith("bearer ")
+
+        # When relying on ambient cookie authentication without an explicit Bearer header
+        if has_cookie and not has_bearer:
+            origin = request.headers.get("origin")
+            referer = request.headers.get("referer")
+
+            request_origin = None
+            if origin:
+                request_origin = origin.rstrip("/")
+            elif referer:
+                from urllib.parse import urlparse
+                parsed_ref = urlparse(referer)
+                if parsed_ref.scheme and parsed_ref.netloc:
+                    request_origin = f"{parsed_ref.scheme}://{parsed_ref.netloc}"
+
+            host_header = request.headers.get("host", "")
+            valid_origins = set(ALLOWED_CSRF_ORIGINS)
+            if host_header:
+                valid_origins.add(f"http://{host_header}")
+                valid_origins.add(f"https://{host_header}")
+
+            if not request_origin or request_origin not in valid_origins:
+                # Disallow cross-origin requests for cookie-authenticated mutations
+                if request.url.path not in ("/auth/login", "/auth/signup", "/auth/logout"):
+                    return JSONResponse(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        content={"detail": "CSRF verification failed: cross-origin request rejected"}
+                    )
+
+    response = await call_next(request)
+    return response
 
 
 
@@ -555,12 +607,12 @@ def signup(
     if existing_user:
         membership = db.query(Membership).filter(Membership.user_id == existing_user.id).first()
         org = db.query(Organization).filter(Organization.id == membership.org_id).first() if membership else None
-        token = f"demo-session-{existing_user.id}"
+        token = create_session_token(existing_user.id, db)
         response.set_cookie(
             key="ledgerlight_session",
             value=token,
             httponly=True,
-            samesite="lax",
+            samesite="strict",
             secure=os.getenv("SECURE_COOKIES", "false").lower() == "true",
             path="/"
         )
@@ -603,12 +655,12 @@ def signup(
     db.add(membership)
     db.commit()
 
-    token = f"demo-session-{user.id}"
+    token = create_session_token(user.id, db)
     response.set_cookie(
         key="ledgerlight_session",
         value=token,
         httponly=True,
-        samesite="lax",
+        samesite="strict",
         secure=os.getenv("SECURE_COOKIES", "false").lower() == "true",
         path="/"
     )
@@ -641,6 +693,7 @@ def login(
     """
     Authenticates user, verifies password against hash, applies sliding-window
     rate limiting and account lockout, and issues both access_token and HttpOnly cookie.
+    Generates a cryptographically random 256-bit token stored hashed in user_sessions.
     """
     client_ip = request.client.host if request.client else "127.0.0.1"
     client_key = f"{client_ip}:{creds.email.strip().lower()}"
@@ -659,13 +712,13 @@ def login(
     reset_failed_login(client_key)
 
     membership = db.query(Membership).filter(Membership.user_id == user.id).first()
-    token = f"demo-session-{user.id}"
+    token = create_session_token(user.id, db)
 
     response.set_cookie(
         key="ledgerlight_session",
         value=token,
         httponly=True,
-        samesite="lax",
+        samesite="strict",
         secure=os.getenv("SECURE_COOKIES", "false").lower() == "true",
         path="/"
     )
@@ -685,10 +738,25 @@ def login(
 
 
 @app.post("/auth/logout")
-def logout(response: Response):
-    """Clears the HttpOnly session cookie."""
-    response.delete_cookie(key="ledgerlight_session", path="/")
+def logout(
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db)
+):
+    """Clears the HttpOnly session cookie and revokes session token in database."""
+    token = None
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header.split(" ", 1)[1].strip()
+    elif "ledgerlight_session" in request.cookies:
+        token = request.cookies.get("ledgerlight_session", "").strip()
+
+    if token:
+        revoke_session_token(token, db)
+
+    response.delete_cookie(key="ledgerlight_session", path="/" )
     return {"status": "logged_out"}
+
 
 
 @app.get("/me")
@@ -1828,6 +1896,7 @@ async def upload_documents(
 
                     parsed_docs.append(parsed)
 
+                    parsed_warns = "; ".join(parsed.warnings) if getattr(parsed, "warnings", None) else None
                     doc = DataRoomDocument(
                         assessment_id=assessment.id,
                         org_id=assessment.org_id,
@@ -1838,7 +1907,8 @@ async def upload_documents(
                         mime_type=parsed.mime_type or "application/octet-stream",
                         page_count=parsed.page_count or len(parsed.pages),
                         status="processed",
-                        stage="classified"
+                        stage="classified",
+                        error_message=parsed_warns
                     )
                     db.add(doc)
                     db.flush()
@@ -1853,6 +1923,7 @@ async def upload_documents(
 
                 parsed_docs.append(parsed)
 
+                parsed_warns = "; ".join(parsed.warnings) if getattr(parsed, "warnings", None) else None
                 doc = DataRoomDocument(
                     assessment_id=assessment.id,
                     org_id=assessment.org_id,
@@ -1863,7 +1934,8 @@ async def upload_documents(
                     mime_type=parsed.mime_type or "application/octet-stream",
                     page_count=parsed.page_count or len(parsed.pages),
                     status="processed",
-                    stage="classified"
+                    stage="classified",
+                    error_message=parsed_warns
                 )
                 db.add(doc)
                 db.flush()

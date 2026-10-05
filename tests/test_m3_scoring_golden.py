@@ -15,7 +15,7 @@ from fastapi.testclient import TestClient
 from apps.api.main import app
 from apps.api.database import SessionLocal, Base, engine
 from apps.api.models import Organization, User, Membership, Assessment, Answer, ScoreRun, ScoreTraceRow
-from apps.api.core.auth import hash_password
+from apps.api.core.auth import hash_password, create_session_token
 from apps.api.core.scoring import compute_readiness_score, load_scoring_config
 
 client = TestClient(app)
@@ -446,7 +446,7 @@ def api_test_setup():
         db.commit()
         db.refresh(assessment)
 
-        token = f"demo-session-{user.id}"
+        token = create_session_token(user.id, db)
 
         yield {
             "org_id": org.id,

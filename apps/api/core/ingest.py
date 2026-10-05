@@ -56,6 +56,7 @@ class ParsedPage:
     char_count: int
     tables: List[List[List[Any]]] = field(default_factory=list)
     has_text_layer: bool = True
+    warnings: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -67,6 +68,7 @@ class ParsedDocument:
     page_count: int
     pages: List[ParsedPage]
     file_size: int
+    warnings: List[str] = field(default_factory=list)
 
 
 class IngestSecurityError(ValueError):
@@ -266,23 +268,33 @@ def parse_pdf_document(content: bytes) -> List[ParsedPage]:
             has_text = len(text.strip()) > 0
             
             # If no text layer, try OCR if pytesseract is available
+            ocr_warning = None
             if not has_text:
+                ocr_success = False
                 try:
                     import pytesseract
                     from PIL import Image
                     pix = page.get_pixmap()
                     img = Image.open(io.BytesIO(pix.tobytes("png")))
-                    text = pytesseract.image_to_string(img) or ""
-                    has_text = len(text.strip()) > 0
+                    ocr_text = pytesseract.image_to_string(img) or ""
+                    if ocr_text.strip():
+                        text = ocr_text
+                        has_text = True
+                        ocr_success = True
                 except Exception:
-                    # OCR not installed or unavailable; keep empty text gracefully
-                    has_text = False
+                    ocr_success = False
+
+                if not ocr_success:
+                    warn = f"OCR unavailable on page {pno + 1}: Scanned page contains raster image without digital text layer. Tesseract OCR is not installed."
+                    ocr_warning = warn
+                    text = f"[{warn}]"
 
             pages.append(ParsedPage(
                 page_number=pno + 1,
                 text=text,
                 char_count=len(text),
-                has_text_layer=has_text
+                has_text_layer=has_text,
+                warnings=[ocr_warning] if ocr_warning else []
             ))
         doc.close()
     except Exception as e:
@@ -421,6 +433,10 @@ def parse_document(filename: str, content: bytes) -> ParsedDocument:
 
     file_type = classify_document(base_name, pages)
 
+    doc_warnings: List[str] = []
+    for p in pages:
+        doc_warnings.extend(p.warnings)
+
     return ParsedDocument(
         filename=base_name,
         file_type=file_type,
@@ -428,7 +444,8 @@ def parse_document(filename: str, content: bytes) -> ParsedDocument:
         mime_type=mime_type,
         page_count=len(pages),
         pages=pages,
-        file_size=len(content)
+        file_size=len(content),
+        warnings=doc_warnings
     )
 
 

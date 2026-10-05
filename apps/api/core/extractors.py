@@ -5,10 +5,16 @@ Implements:
 1. Deterministic extractors for FINANCIAL_TABLE questions:
    - runway, burn, customer concentration, NRR, budget variance, EBITDA add-backs, gross margin.
    - Shows formula and inputs to user.
-   - Confidence 1.0 only if all required cells found; otherwise NEEDS_CONFIRMATION.
+   - Confidence 1.0 and AUTO_FILLED only if:
+     (a) Comes from a structured table cell with a recognized header,
+     (b) Every input comes from the SAME document and the same period,
+     (c) Passes plausibility checks (runway 0-120m, percentages 0-100%).
+   - Otherwise, status is NEEDS_CONFIRMATION with confidence <= 0.70.
+   - Never auto-fills from regex-parsed free text.
+   - Conflicting values across documents produce NEEDS_CONFIRMATION showing all sources.
 2. Deterministic detectors for CERTIFICATE_OR_REPORT and POLICY_DOC:
-   - Keyword and section detection.
-   - Label is strictly "document found", never "compliant".
+   - Always return NEEDS_CONFIRMATION (never AUTO_FILLED).
+   - Label is strictly "document found", never an answer or "compliant".
 3. Per-question output:
    answer_value, confidence, source_file, page, char_start, char_end, snippet (<= 500 chars), method, status.
 4. Privacy & logging:
@@ -19,11 +25,18 @@ import logging
 from typing import Dict, Any, List, Optional, Tuple
 from apps.api.core.ingest import ParsedDocument, ParsedPage
 
-# Dedicated logger for extraction engine
 logger = logging.getLogger("ledgerlight.extractors")
 
 CONFIDENCE_T_HIGH = 0.85
 CONFIDENCE_T_LOW = 0.50
+
+# EBITDA Add-back label synonyms
+ADDBACK_SYNONYMS = [
+    "management add-backs", "management addbacks", "total add-backs", "total addbacks",
+    "add-backs", "addbacks", "ebitda adjustments", "normalized ebitda adjustments",
+    "normalization adjustments", "pro-forma adjustments", "pro forma adjustments",
+    "management adjustments", "adjusted ebitda adjustments"
+]
 
 
 def sanitize_snippet(text: str, max_chars: int = 500) -> str:
@@ -36,18 +49,105 @@ def sanitize_snippet(text: str, max_chars: int = 500) -> str:
     return clean
 
 
-def extract_financial_number(text: str) -> Optional[float]:
-    """Helper to extract positive or negative float from currency/percentage string."""
-    if not text:
+def extract_financial_number(text: Any) -> Optional[float]:
+    """
+    Helper to extract float from currency/percentage string, handling:
+    - Currency symbols: $, €, £
+    - Commas: 1,000,000
+    - Accounting parentheses as negatives: (800,000), $(800,000), $( 800,000.00 ), ($800k)
+    - Percentages: 80.0%, 17.1 %
+    - Leading/trailing text
+    """
+    if text is None:
         return None
-    cleaned = str(text).replace("$", "").replace(",", "").replace("%", "").strip()
-    # Check for accounting parentheses e.g. (150,000) -> -150000
+    s = str(text).strip()
+    if not s:
+        return None
+
+    is_neg = False
+    cleaned = s.replace("$", "").replace("€", "").replace("£", "").replace(",", "").replace("%", "").strip()
+
+    # Check for outer accounting parentheses e.g. (800000) or $(800000)
     if cleaned.startswith("(") and cleaned.endswith(")"):
-        cleaned = "-" + cleaned[1:-1].strip()
+        is_neg = True
+        cleaned = cleaned[1:-1].strip()
+    elif "(" in s and ")" in s:
+        m = re.search(r"\(\s*\$?\s*([0-9]+(?:\.[0-9]+)?)\s*\)", s.replace(",", ""))
+        if m:
+            try:
+                return -float(m.group(1))
+            except ValueError:
+                pass
+
     try:
-        return float(cleaned)
+        val = float(cleaned)
+        return -val if is_neg else val
     except ValueError:
-        return None
+        m = re.search(r"\(?\s*\$?\s*([0-9]{1,3}(?:,[0-9]{3})+(?:\.[0-9]+)?|[0-9]+(?:\.[0-9]+)?)\s*\)?", s)
+        if m:
+            try:
+                val = float(m.group(1).replace(",", ""))
+                return -val if is_neg or ("(" in m.group(0) and ")" in m.group(0)) else val
+            except ValueError:
+                return None
+    return None
+
+
+def detect_unit_multiplier(text: str) -> float:
+    """Detects unit scale in headers or preambles ($ in thousands, millions, etc.)."""
+    t = text.lower()
+    if any(k in t for k in ["in thousands", "in '000s", "($ in '000s)", "($000)", "$ in thousands", "$000", "$k", "figures in $ thousands", "($ in thousands)"]):
+        return 1000.0
+    if any(k in t for k in ["in millions", "($ in millions)", "$ in millions", "$m", "($m)", "figures in $ millions"]):
+        return 1000000.0
+    return 1.0
+
+
+def check_plausibility(metric: str, value: float) -> Tuple[bool, Optional[str]]:
+    """Enforces PRD plausibility limits: runway 0-120m, percentages 0-100%."""
+    if metric == "runway":
+        if value < 0.0:
+            return False, f"Runway cannot be negative ({value} months)"
+        if value > 120.0:
+            return False, f"Runway exceeds plausible maximum of 120 months ({value} months)"
+        return True, None
+    elif metric in ("gross_margin", "customer_concentration", "budget_variance", "ebitda_addbacks"):
+        if value < 0.0:
+            return False, f"{metric} cannot be negative ({value}%)"
+        if value > 100.0:
+            return False, f"{metric} cannot exceed 100.0% ({value}%)"
+        return True, None
+    elif metric == "nrr":
+        if value < 0.0 or value > 300.0:
+            return False, f"NRR out of plausible range 0-300% ({value}%)"
+        return True, None
+    return True, None
+
+
+def determine_extraction_status(
+    is_table: bool,
+    same_document: bool,
+    is_plausible: bool,
+    has_conflict: bool = False
+) -> Tuple[str, float]:
+    """
+    STRICT SAFETY RULE (Rule 1):
+    Never auto-fill from regex-parsed free text.
+    A value may be AUTO_FILLED only if:
+      (a) it comes from a structured table cell with a recognized header (is_table=True),
+      (b) every input comes from the SAME document and the same period (same_document=True),
+      (c) it passes plausibility checks (is_plausible=True).
+    Otherwise it is NEEDS_CONFIRMATION with confidence <= 0.70.
+    Confidence 1.0 is allowed only when (a), (b), and (c) all hold.
+    If has_conflict is True, confidence is <= 0.50.
+    """
+    if has_conflict:
+        return "NEEDS_CONFIRMATION", 0.50
+    if not is_plausible:
+        return "NEEDS_CONFIRMATION", 0.35
+    if is_table and same_document and is_plausible:
+        return "AUTO_FILLED", 1.0
+    return "NEEDS_CONFIRMATION", 0.70
 
 
 # =========================================================================
@@ -60,90 +160,202 @@ def extract_cash_runway(
     """
     Extracts cash balance and net monthly burn to compute runway:
     Formula: runway_months = cash_balance / net_monthly_burn
-    Confidence: 1.0 only if both cash_balance and net_monthly_burn found.
+    Safety rules:
+    - Prefer Ending/Closing/Certified balance over Opening/Beginning balance.
+    - Accounting parentheses are treated as negatives.
+    - Plausibility: runway must be 0 to 120 months. Cash > 0, Burn > 0.
+    - AUTO_FILLED only if from structured table cell in same document, with recognized header.
+    - If multiple documents conflict (> 0.5 months difference), return NEEDS_CONFIRMATION.
     """
-    cash_balance: Optional[float] = None
-    cash_source: Optional[Tuple[str, int, str]] = None
-    monthly_burn: Optional[float] = None
-    burn_source: Optional[Tuple[str, int, str]] = None
+    candidates: List[Dict[str, Any]] = []
 
     for doc in docs:
+        doc_multiplier = 1.0
         for p in doc.pages:
-            # Check tables in XLSX / CSV
+            m = detect_unit_multiplier(p.text)
+            if m > 1.0:
+                doc_multiplier = m
+                break
+
+        for p in doc.pages:
+            # 1. Structured table check (XLSX / CSV / PDF tables)
             for tbl in p.tables:
+                tbl_text = " ".join(" ".join(str(c) for c in r) for r in tbl[:3])
+                tbl_multiplier = detect_unit_multiplier(tbl_text) or doc_multiplier
+
+                cash_val: Optional[float] = None
+                cash_label: str = ""
+                cash_score: int = 0
+                burn_val: Optional[float] = None
+                burn_label: str = ""
+
                 for row in tbl:
                     row_str = " ".join(str(c).lower() for c in row)
                     
-                    # Cash balance check
-                    if any(k in row_str for k in ["cash and cash equivalents", "ending cash balance", "total cash", "cash balance", "certified cash balance"]):
-                        for cell in row:
-                            val = extract_financial_number(str(cell))
-                            if val is not None and val > 1000:
-                                cash_balance = val
-                                cash_source = (doc.filename, p.page_number, f"Cash line item: {' | '.join(str(c) for c in row[:4])}")
+                    # Cash balance check: prefer ending / closing / certified over opening
+                    current_score = 0
+                    if any(k in row_str for k in ["closing ledger balance", "certified cash balance", "certified closing balance", "ending cash balance", "closing cash", "ending cash", "combined total cash"]):
+                        current_score = 100
+                    elif any(k in row_str for k in ["cash and cash equivalents", "cash and equivalents", "total cash", "cash balance", "closing"]):
+                        current_score = 80
+                    elif any(k in row_str for k in ["opening ledger balance", "beginning cash balance", "opening cash", "beginning cash", "starting cash"]):
+                        current_score = 10
+
+                    if current_score > cash_score:
+                        for cell in reversed(row):
+                            v = extract_financial_number(cell)
+                            if v is not None and v > 0:
+                                cash_val = v * tbl_multiplier
+                                cash_label = row_str[:80]
+                                cash_score = current_score
                                 break
 
                     # Monthly burn check
-                    if any(k in row_str for k in ["net burn", "monthly burn", "average monthly burn", "burn rate", "net monthly burn"]):
-                        for cell in row:
-                            val = extract_financial_number(str(cell))
-                            if val is not None and val > 100:
-                                monthly_burn = abs(val)
-                                burn_source = (doc.filename, p.page_number, f"Burn line item: {' | '.join(str(c) for c in row[:4])}")
+                    if any(k in row_str for k in ["average monthly burn", "net monthly burn", "net monthly cash outflow / burn", "monthly burn", "burn rate", "net burn", "average monthly cash consumption"]) and burn_val is None:
+                        for cell in reversed(row):
+                            v = extract_financial_number(cell)
+                            if v is not None and abs(v) > 0:
+                                burn_val = abs(v) * tbl_multiplier
+                                burn_label = row_str[:80]
                                 break
 
-            # Check text lines in PDF / TXT
-            for line in p.text.splitlines():
+                if cash_val is not None and burn_val is not None and burn_val > 0:
+                    r_val = round(cash_val / burn_val, 1)
+                    snip = sanitize_snippet(f"Cash: ${cash_val:,.2f} ({cash_label}) | Burn: ${burn_val:,.2f} ({burn_label}) | Runway: {r_val}m")
+                    candidates.append({
+                        "runway": r_val,
+                        "cash": cash_val,
+                        "burn": burn_val,
+                        "doc_name": doc.filename,
+                        "page": p.page_number,
+                        "is_table": True,
+                        "snippet": snip
+                    })
+
+            # 2. Text lines check (PDF / TXT lines)
+            lines = p.text.splitlines()
+            text_cash: Optional[float] = None
+            text_cash_score: int = 0
+            text_cash_line: str = ""
+            text_burn: Optional[float] = None
+            text_burn_line: str = ""
+
+            for line in lines:
                 l_lower = line.lower()
-                if cash_balance is None and any(k in l_lower for k in ["cash and cash equivalents", "ending cash balance", "certified cash balance", "cash balance"]):
-                    nums = re.findall(r"\$?\s*([0-9]{1,3}(?:,[0-9]{3})+(?:\.[0-9]+)?|[0-9]{5,}(?:\.[0-9]+)?)", line)
-                    if nums:
-                        cash_balance = extract_financial_number(nums[-1])
-                        cash_source = (doc.filename, p.page_number, line.strip())
+                c_score = 0
+                if any(k in l_lower for k in ["closing ledger balance", "certified cash balance", "certified closing balance", "ending cash balance", "closing cash", "ending cash", "combined total cash", "ending balance", "closing balance", "certified balance"]):
+                    c_score = 100
+                elif any(k in l_lower for k in ["cash and cash equivalents", "cash and equivalents", "total cash", "cash balance"]):
+                    c_score = 80
+                elif any(k in l_lower for k in ["opening ledger balance", "beginning cash balance", "opening cash", "beginning cash", "opening balance", "beginning balance"]):
+                    c_score = 10
 
-                if monthly_burn is None and any(k in l_lower for k in ["net monthly burn", "monthly burn", "burn rate", "net burn"]):
-                    nums = re.findall(r"\$?\s*([0-9]{1,3}(?:,[0-9]{3})+(?:\.[0-9]+)?|[0-9]{4,}(?:\.[0-9]+)?)", line)
+                if c_score > text_cash_score:
+                    # Match full numbers in line
+                    nums = re.findall(r"(?:\$|\b)\s*\(?\s*([0-9]{1,3}(?:,[0-9]{3})+(?:\.[0-9]+)?|[0-9]{4,}(?:\.[0-9]+)?)\s*\)?", line)
                     if nums:
-                        monthly_burn = extract_financial_number(nums[-1])
-                        burn_source = (doc.filename, p.page_number, line.strip())
+                        v = extract_financial_number(nums[-1])
+                        if v is not None and v > 0:
+                            text_cash = v * doc_multiplier
+                            text_cash_score = c_score
+                            text_cash_line = line.strip()
 
-    if cash_balance is not None and monthly_burn is not None and monthly_burn > 0:
-        runway = round(cash_balance / monthly_burn, 1)
-        src_file = cash_source[0] if cash_source else docs[0].filename
-        src_page = cash_source[1] if cash_source else 1
-        snippet = sanitize_snippet(f"Cash Balance: ${cash_balance:,.2f} ({cash_source[2] if cash_source else ''}) | Net Monthly Burn: ${monthly_burn:,.2f} ({burn_source[2] if burn_source else ''})")
+                if text_burn is None and any(k in l_lower for k in ["average monthly burn", "net monthly burn", "net monthly cash outflow / burn", "monthly burn", "burn rate", "net burn", "average monthly cash consumption"]):
+                    nums = re.findall(r"(?:\$|\b)\s*\(?\s*([0-9]{1,3}(?:,[0-9]{3})+(?:\.[0-9]+)?|[0-9]{4,}(?:\.[0-9]+)?)\s*\)?", line)
+                    if nums:
+                        v = extract_financial_number(nums[-1])
+                        if v is not None and abs(v) > 0:
+                            text_burn = abs(v) * doc_multiplier
+                            text_burn_line = line.strip()
+
+            if text_cash is not None and text_burn is not None and text_burn > 0:
+                r_val = round(text_cash / text_burn, 1)
+                snip = sanitize_snippet(f"Cash: ${text_cash:,.2f} ({text_cash_line}) | Burn: ${text_burn:,.2f} ({text_burn_line}) | Runway: {r_val}m")
+                candidates.append({
+                    "runway": r_val,
+                    "cash": text_cash,
+                    "burn": text_burn,
+                    "doc_name": doc.filename,
+                    "page": p.page_number,
+                    "is_table": False,
+                    "snippet": snip
+                })
+
+    if not candidates:
+        return None
+
+    # Check for conflicts across DIFFERENT documents
+    unique_runways: Dict[float, List[Dict[str, Any]]] = {}
+    for c in candidates:
+        key = round(c["runway"], 1)
+        if key not in unique_runways:
+            unique_runways[key] = []
+        unique_runways[key].append(c)
+
+    has_conflict = False
+    if len(unique_runways) > 1:
+        diff = max(unique_runways.keys()) - min(unique_runways.keys())
+        if diff > 0.5:
+            has_conflict = True
+
+    if has_conflict:
+        conflict_list = []
+        for r_val, c_list in sorted(unique_runways.items()):
+            srcs = [f"{item['doc_name']} (p.{item['page']}): {item['runway']}m" for item in c_list]
+            conflict_list.append("; ".join(srcs))
+
+        snippet = sanitize_snippet(
+            f"Conflicting runway values detected across documents: {' | '.join(conflict_list)}. User confirmation required."
+        )
         return {
-            "answer_value": runway,
-            "confidence": 1.0,  # All required input cells found
-            "status": "AUTO_FILLED",
-            "method": "FINANCIAL_TABLE",
-            "formula": "runway_months = cash_balance / net_monthly_burn",
-            "formula_inputs": {
-                "cash_balance": cash_balance,
-                "net_monthly_burn": monthly_burn
-            },
-            "source_file": src_file,
-            "page": src_page,
-            "snippet": snippet
-        }
-    elif cash_balance is not None:
-        # Partial extraction
-        src_file = cash_source[0] if cash_source else docs[0].filename
-        src_page = cash_source[1] if cash_source else 1
-        snippet = sanitize_snippet(f"Cash Balance identified: ${cash_balance:,.2f}, but net monthly burn not located in data room.")
-        return {
-            "answer_value": None,
+            "answer_value": list(unique_runways.keys())[0],
             "confidence": 0.50,
             "status": "NEEDS_CONFIRMATION",
             "method": "FINANCIAL_TABLE",
             "formula": "runway_months = cash_balance / net_monthly_burn",
-            "formula_inputs": {"cash_balance": cash_balance, "net_monthly_burn": None},
-            "source_file": src_file,
-            "page": src_page,
+            "formula_inputs": {
+                "conflict": True,
+                "candidates": [
+                    {"runway": c["runway"], "cash": c["cash"], "burn": c["burn"], "doc": c["doc_name"], "page": c["page"]}
+                    for c in candidates
+                ]
+            },
+            "source_file": candidates[0]["doc_name"],
+            "page": candidates[0]["page"],
             "snippet": snippet
         }
-    
-    return None
+
+    # If no conflict: prefer structured table candidate over free-text
+    table_candidates = [c for c in candidates if c["is_table"]]
+    chosen = table_candidates[0] if table_candidates else candidates[0]
+
+    is_plausible, plaus_err = check_plausibility("runway", chosen["runway"])
+    status, confidence = determine_extraction_status(
+        is_table=chosen["is_table"],
+        same_document=True,
+        is_plausible=is_plausible,
+        has_conflict=False
+    )
+
+    snippet = chosen["snippet"]
+    if not is_plausible and plaus_err:
+        snippet = sanitize_snippet(f"Plausibility warning: {plaus_err}. {snippet}")
+
+    return {
+        "answer_value": chosen["runway"],
+        "confidence": confidence,
+        "status": status,
+        "method": "FINANCIAL_TABLE",
+        "formula": "runway_months = cash_balance / net_monthly_burn",
+        "formula_inputs": {
+            "cash_balance": chosen["cash"],
+            "net_monthly_burn": chosen["burn"],
+            "source_is_table": chosen["is_table"]
+        },
+        "source_file": chosen["doc_name"],
+        "page": chosen["page"],
+        "snippet": snippet
+    }
 
 
 def extract_gross_margin(
@@ -152,81 +364,161 @@ def extract_gross_margin(
     """
     Extracts revenue and COGS / gross margin percentage from financial statements:
     Formula: gross_margin_pct = ((revenue - cogs) / revenue) * 100
+    Rule: Both revenue and COGS must come from the same document/table.
     """
-    revenue: Optional[float] = None
-    cogs: Optional[float] = None
-    direct_margin: Optional[float] = None
-    best_source: Optional[Tuple[str, int, str]] = None
+    candidates: List[Dict[str, Any]] = []
 
     for doc in docs:
+        doc_multiplier = 1.0
+        for p in doc.pages:
+            m = detect_unit_multiplier(p.text)
+            if m > 1.0:
+                doc_multiplier = m
+                break
+
         for p in doc.pages:
             for tbl in p.tables:
+                tbl_text = " ".join(" ".join(str(c) for c in r) for r in tbl[:3])
+                tbl_multiplier = detect_unit_multiplier(tbl_text) or doc_multiplier
+
+                rev: Optional[float] = None
+                rev_label: str = ""
+                cogs: Optional[float] = None
+                cogs_label: str = ""
+                direct_margin: Optional[float] = None
+                direct_label: str = ""
+
                 for row in tbl:
                     row_str = " ".join(str(c).lower() for c in row)
-                    if any(k in row_str for k in ["total revenue", "net revenue", "gross revenue"]) and revenue is None:
-                        for cell in row:
-                            val = extract_financial_number(str(cell))
-                            if val is not None and val > 1000:
-                                revenue = val
-                                best_source = (doc.filename, p.page_number, f"Revenue: {' | '.join(str(c) for c in row[:4])}")
+                    if any(k in row_str for k in ["total net revenue", "total revenue", "net revenue", "gross revenue", "total net sales", "revenue"]) and rev is None:
+                        for cell in reversed(row):
+                            v = extract_financial_number(cell)
+                            if v is not None and v > 0:
+                                rev = v * tbl_multiplier
+                                rev_label = str(row[0]).strip()
                                 break
 
-                    if any(k in row_str for k in ["cost of goods sold", "cost of revenue", "total cogs", "cogs"]) and cogs is None:
-                        for cell in row:
-                            val = extract_financial_number(str(cell))
-                            if val is not None and val > 100:
-                                cogs = abs(val)
+                    if any(k in row_str for k in ["cost of goods sold", "cost of sales and contract fulfillment", "cost of sales", "cost of revenue", "total cogs", "cogs"]) and cogs is None:
+                        for cell in reversed(row):
+                            v = extract_financial_number(cell)
+                            if v is not None and abs(v) > 0:
+                                cogs = abs(v) * tbl_multiplier
+                                cogs_label = str(row[0]).strip()
                                 break
 
-                    if any(k in row_str for k in ["gross margin %", "gross margin percentage", "gross margin"]) and direct_margin is None:
-                        for cell in row:
-                            val = extract_financial_number(str(cell))
-                            if val is not None and 0 <= val <= 100:
-                                direct_margin = val
-                                best_source = (doc.filename, p.page_number, f"Direct Margin: {' | '.join(str(c) for c in row[:4])}")
+                    if any(k in row_str for k in ["gross margin %", "gross profit margin %", "gross margin percentage", "gross margin"]) and direct_margin is None:
+                        for cell in reversed(row):
+                            v = extract_financial_number(cell)
+                            if v is not None and 0 <= v <= 100:
+                                direct_margin = v
+                                direct_label = str(row[0]).strip()
                                 break
 
-            # Text lines check
+                if rev is not None and cogs is not None and rev > 0:
+                    gm = round(((rev - cogs) / rev) * 100.0, 1)
+                    is_plausible, err_msg = check_plausibility("gross_margin", gm)
+                    status, conf = determine_extraction_status(
+                        is_table=True,
+                        same_document=True,
+                        is_plausible=is_plausible,
+                        has_conflict=False
+                    )
+                    snip = sanitize_snippet(f"Revenue: ${rev:,.2f} ({rev_label}) | COGS: ${cogs:,.2f} ({cogs_label}) | Gross Margin: {gm}%")
+                    candidates.append({
+                        "gm": gm,
+                        "rev": rev,
+                        "cogs": cogs,
+                        "doc_name": doc.filename,
+                        "page": p.page_number,
+                        "is_table": True,
+                        "status": status,
+                        "confidence": conf,
+                        "snippet": snip
+                    })
+                elif direct_margin is not None:
+                    is_plausible, err_msg = check_plausibility("gross_margin", direct_margin)
+                    status, conf = determine_extraction_status(
+                        is_table=True,
+                        same_document=True,
+                        is_plausible=is_plausible,
+                        has_conflict=False
+                    )
+                    candidates.append({
+                        "gm": direct_margin,
+                        "rev": None,
+                        "cogs": None,
+                        "doc_name": doc.filename,
+                        "page": p.page_number,
+                        "is_table": True,
+                        "status": status,
+                        "confidence": conf,
+                        "snippet": sanitize_snippet(f"Reported Gross Margin: {direct_margin}% ({direct_label})")
+                    })
+
+            # Text check (free text)
             for line in p.text.splitlines():
                 l_lower = line.lower()
-                if "gross margin" in l_lower and ("%" in line or "percent" in l_lower) and direct_margin is None:
+                if "gross margin" in l_lower and ("%" in line or "percent" in l_lower):
                     nums = re.findall(r"([0-9]{1,2}(?:\.[0-9]+)?)\s*%", line)
                     if nums:
-                        direct_margin = float(nums[0])
-                        best_source = (doc.filename, p.page_number, line.strip())
+                        dm = float(nums[0])
+                        is_plausible, _ = check_plausibility("gross_margin", dm)
+                        status, conf = determine_extraction_status(
+                            is_table=False,
+                            same_document=True,
+                            is_plausible=is_plausible,
+                            has_conflict=False
+                        )
+                        candidates.append({
+                            "gm": dm,
+                            "rev": None,
+                            "cogs": None,
+                            "doc_name": doc.filename,
+                            "page": p.page_number,
+                            "is_table": False,
+                            "status": status,
+                            "confidence": conf,
+                            "snippet": sanitize_snippet(f"Reported Gross Margin (text): {dm}% ({line.strip()})")
+                        })
 
-    if revenue is not None and cogs is not None and revenue > 0:
-        gm = round(((revenue - cogs) / revenue) * 100.0, 1)
-        src_file = best_source[0] if best_source else docs[0].filename
-        src_page = best_source[1] if best_source else 1
-        snippet = sanitize_snippet(f"Revenue: ${revenue:,.2f} | COGS: ${cogs:,.2f} | Calculated Gross Margin: {gm}%")
+    if not candidates:
+        return None
+
+    # Check conflicts
+    unique_gms = {round(c["gm"], 1): c for c in candidates}
+    if len(unique_gms) > 1 and (max(unique_gms.keys()) - min(unique_gms.keys()) > 1.0):
+        c_strs = [f"{c['doc_name']} (p.{c['page']}): {c['gm']}%" for c in candidates]
         return {
-            "answer_value": gm,
-            "confidence": 1.0,
-            "status": "AUTO_FILLED",
+            "answer_value": list(unique_gms.keys())[0],
+            "confidence": 0.50,
+            "status": "NEEDS_CONFIRMATION",
             "method": "FINANCIAL_TABLE",
             "formula": "gross_margin_pct = ((revenue - cogs) / revenue) * 100",
-            "formula_inputs": {"revenue": revenue, "cogs": cogs, "gross_profit": round(revenue - cogs, 2)},
-            "source_file": src_file,
-            "page": src_page,
-            "snippet": snippet
+            "formula_inputs": {"conflict": True, "candidates": [c["gm"] for c in candidates]},
+            "source_file": candidates[0]["doc_name"],
+            "page": candidates[0]["page"],
+            "snippet": sanitize_snippet(f"Conflicting gross margin values detected: {' | '.join(c_strs)}")
         }
-    elif direct_margin is not None:
-        src_file = best_source[0] if best_source else docs[0].filename
-        src_page = best_source[1] if best_source else 1
-        snippet = sanitize_snippet(f"Reported Gross Margin: {direct_margin}% ({best_source[2] if best_source else ''})")
-        return {
-            "answer_value": direct_margin,
-            "confidence": 1.0,
-            "status": "AUTO_FILLED",
-            "method": "FINANCIAL_TABLE",
-            "formula": "gross_margin_pct = direct_reported_margin",
-            "formula_inputs": {"gross_margin_pct": direct_margin},
-            "source_file": src_file,
-            "page": src_page,
-            "snippet": snippet
-        }
-    return None
+
+    # Prefer table candidate
+    table_candidates = [c for c in candidates if c["is_table"]]
+    chosen = table_candidates[0] if table_candidates else candidates[0]
+
+    return {
+        "answer_value": chosen["gm"],
+        "confidence": chosen["confidence"],
+        "status": chosen["status"],
+        "method": "FINANCIAL_TABLE",
+        "formula": "gross_margin_pct = ((revenue - cogs) / revenue) * 100",
+        "formula_inputs": {
+            "revenue": chosen.get("rev"),
+            "cogs": chosen.get("cogs"),
+            "source_is_table": chosen["is_table"]
+        },
+        "source_file": chosen["doc_name"],
+        "page": chosen["page"],
+        "snippet": chosen["snippet"]
+    }
 
 
 def extract_customer_concentration(
@@ -235,77 +527,147 @@ def extract_customer_concentration(
     """
     Extracts largest customer revenue share:
     Formula: top1_pct = (top_customer_revenue / total_revenue) * 100
+    Rule: Top customer and total revenue MUST come from the SAME document/table.
+    Plausibility: must be 0 to 100%.
     """
-    top_customer_rev: Optional[float] = None
-    total_rev: Optional[float] = None
-    direct_top1_pct: Optional[float] = None
-    best_source: Optional[Tuple[str, int, str]] = None
+    candidates: List[Dict[str, Any]] = []
 
     for doc in docs:
+        doc_multiplier = 1.0
+        for p in doc.pages:
+            m = detect_unit_multiplier(p.text)
+            if m > 1.0:
+                doc_multiplier = m
+                break
+
         for p in doc.pages:
             for tbl in p.tables:
-                customer_amounts: List[float] = []
+                tbl_text = " ".join(" ".join(str(c) for c in r) for r in tbl[:3])
+                tbl_multiplier = detect_unit_multiplier(tbl_text) or doc_multiplier
+
+                total_rev: Optional[float] = None
+                customer_amounts: List[Tuple[float, str]] = []
+                direct_pct: Optional[float] = None
+                direct_label: str = ""
+
                 for row in tbl:
                     row_str = " ".join(str(c).lower() for c in row)
-                    if any(k in row_str for k in ["total revenue", "total arr", "total"]):
-                        for c in row:
-                            val = extract_financial_number(str(c))
-                            if val is not None and val > 1000:
-                                total_rev = val
+                    
+                    if any(k in row_str for k in ["total consolidated arr", "total revenue", "total arr", "total client", "total billings"]) or row_str.strip().startswith("total"):
+                        for cell in row:
+                            if "%" in str(cell):
+                                continue
+                            v = extract_financial_number(cell)
+                            if v is not None and v > 0:
+                                total_rev = v * tbl_multiplier
                                 break
-                    elif any(c for c in row if any(k in str(c).lower() for k in ["customer", "client", "account", "corp", "inc"])):
-                        for c in row:
-                            val = extract_financial_number(str(c))
-                            if val is not None and val > 0:
-                                customer_amounts.append(val)
+                    elif any(c for c in row if any(k in str(c).lower() for k in ["customer", "client", "account", "corp", "inc", "enterprises", "solutions", "holdings", "systems", "labs", "partner", "partners", "company", "co."])):
+                        # Skip consolidated / other rows from being picked as single largest customer
+                        if any(k in row_str for k in ["all other", "consolidated other", "other active", "other customers", "other accounts", "rest of", "all remaining"]):
+                            continue
+                        for cell in row:
+                            if "%" in str(cell):
+                                continue
+                            v = extract_financial_number(cell)
+                            if v is not None and v > 0:
+                                customer_amounts.append((v * tbl_multiplier, str(row[0]).strip()))
+                                break
 
-                if customer_amounts and total_rev:
-                    customer_amounts.sort(reverse=True)
-                    top_customer_rev = customer_amounts[0]
-                    best_source = (doc.filename, p.page_number, f"Customer Revenue Schedule: Top customer amount ${top_customer_rev:,.2f}")
+                    if any(k in row_str for k in ["share of overall arr", "revenue share %", "concentration %", "% of arr", "% of revenue"]):
+                        for cell in row:
+                            v = extract_financial_number(cell)
+                            if v is not None and 0.0 < v <= 100.0:
+                                if direct_pct is None:
+                                    direct_pct = v
+                                    direct_label = str(row[0]).strip()
 
-            # Text check
-            for line in p.text.splitlines():
-                l_lower = line.lower()
-                if ("largest customer" in l_lower or "top customer" in l_lower) and ("%" in line or "percent" in l_lower):
-                    nums = re.findall(r"([0-9]{1,2}(?:\.[0-9]+)?)\s*%", line)
-                    if nums:
-                        direct_top1_pct = float(nums[0])
-                        best_source = (doc.filename, p.page_number, line.strip())
+                if customer_amounts and total_rev and total_rev > 0:
+                    customer_amounts.sort(key=lambda x: x[0], reverse=True)
+                    top_amount, top_name = customer_amounts[0]
+                    calc_pct = round((top_amount / total_rev) * 100.0, 1)
 
-    if top_customer_rev is not None and total_rev is not None and total_rev > 0:
-        top1_pct = round((top_customer_rev / total_rev) * 100.0, 1)
-        src_file = best_source[0] if best_source else docs[0].filename
-        src_page = best_source[1] if best_source else 1
-        snippet = sanitize_snippet(f"Top Customer Revenue: ${top_customer_rev:,.2f} | Total Revenue: ${total_rev:,.2f} | Concentration: {top1_pct}%")
+                    is_plausible, err_msg = check_plausibility("customer_concentration", calc_pct)
+                    status, conf = determine_extraction_status(
+                        is_table=True,
+                        same_document=True,
+                        is_plausible=is_plausible,
+                        has_conflict=False
+                    )
+
+                    snip = sanitize_snippet(
+                        f"Top Customer: '{top_name}' (${top_amount:,.2f}) | Total Revenue: ${total_rev:,.2f} | Concentration: {calc_pct}%"
+                    )
+                    if not is_plausible and err_msg:
+                        snip = sanitize_snippet(f"Implausibility flag ({err_msg}): {snip}")
+
+                    candidates.append({
+                        "pct": calc_pct,
+                        "top_amount": top_amount,
+                        "total_rev": total_rev,
+                        "doc_name": doc.filename,
+                        "page": p.page_number,
+                        "is_table": True,
+                        "is_plausible": is_plausible,
+                        "status": status,
+                        "confidence": conf,
+                        "snippet": snip
+                    })
+                elif direct_pct is not None:
+                    is_plausible, _ = check_plausibility("customer_concentration", direct_pct)
+                    status, conf = determine_extraction_status(
+                        is_table=True,
+                        same_document=True,
+                        is_plausible=is_plausible,
+                        has_conflict=False
+                    )
+                    candidates.append({
+                        "pct": direct_pct,
+                        "top_amount": None,
+                        "total_rev": None,
+                        "doc_name": doc.filename,
+                        "page": p.page_number,
+                        "is_table": True,
+                        "is_plausible": is_plausible,
+                        "status": status,
+                        "confidence": conf,
+                        "snippet": sanitize_snippet(f"Direct Top Customer Share: {direct_pct}% ({direct_label})")
+                    })
+
+    if not candidates:
+        return None
+
+    # Check conflicts
+    unique_pcts = {round(c["pct"], 1): c for c in candidates}
+    if len(unique_pcts) > 1 and (max(unique_pcts.keys()) - min(unique_pcts.keys()) > 1.0):
+        c_strs = [f"{c['doc_name']} (p.{c['page']}): {c['pct']}%" for c in candidates]
         return {
-            "answer_value": top1_pct,
-            "confidence": 1.0,
-            "status": "AUTO_FILLED",
+            "answer_value": list(unique_pcts.keys())[0],
+            "confidence": 0.50,
+            "status": "NEEDS_CONFIRMATION",
             "method": "FINANCIAL_TABLE",
             "formula": "top1_pct = (top_customer_revenue / total_revenue) * 100",
-            "formula_inputs": {"top_customer_revenue": top_customer_rev, "total_revenue": total_rev},
-            "source_file": src_file,
-            "page": src_page,
-            "snippet": snippet
-        }
-    elif direct_top1_pct is not None:
-        src_file = best_source[0] if best_source else docs[0].filename
-        src_page = best_source[1] if best_source else 1
-        snippet = sanitize_snippet(f"Reported Top Customer Share: {direct_top1_pct}% ({best_source[2] if best_source else ''})")
-        return {
-            "answer_value": direct_top1_pct,
-            "confidence": 1.0,
-            "status": "AUTO_FILLED",
-            "method": "FINANCIAL_TABLE",
-            "formula": "top1_pct = direct_reported_percentage",
-            "formula_inputs": {"top1_pct": direct_top1_pct},
-            "source_file": src_file,
-            "page": src_page,
-            "snippet": snippet
+            "formula_inputs": {"conflict": True, "candidates": [c["pct"] for c in candidates]},
+            "source_file": candidates[0]["doc_name"],
+            "page": candidates[0]["page"],
+            "snippet": sanitize_snippet(f"Conflicting customer concentration values detected: {' | '.join(c_strs)}")
         }
 
-    return None
+    chosen = candidates[0]
+    return {
+        "answer_value": chosen["pct"],
+        "confidence": chosen["confidence"],
+        "status": chosen["status"],
+        "method": "FINANCIAL_TABLE",
+        "formula": "top1_pct = (top_customer_revenue / total_revenue) * 100",
+        "formula_inputs": {
+            "top_customer_revenue": chosen.get("top_amount"),
+            "total_revenue": chosen.get("total_rev"),
+            "source_is_table": chosen["is_table"]
+        },
+        "source_file": chosen["doc_name"],
+        "page": chosen["page"],
+        "snippet": chosen["snippet"]
+    }
 
 
 def extract_net_revenue_retention(
@@ -314,81 +676,107 @@ def extract_net_revenue_retention(
     """
     Extracts Net Revenue Retention (NRR):
     Formula: nrr_pct = (ending_arr / beginning_arr) * 100
+    Rule: Beginning and Ending ARR must come from the same document/table.
     """
-    beg_arr: Optional[float] = None
-    end_arr: Optional[float] = None
-    direct_nrr: Optional[float] = None
-    best_source: Optional[Tuple[str, int, str]] = None
+    candidates: List[Dict[str, Any]] = []
 
     for doc in docs:
+        doc_multiplier = 1.0
+        for p in doc.pages:
+            m = detect_unit_multiplier(p.text)
+            if m > 1.0:
+                doc_multiplier = m
+                break
+
         for p in doc.pages:
             for tbl in p.tables:
+                tbl_text = " ".join(" ".join(str(c) for c in r) for r in tbl[:3])
+                tbl_multiplier = detect_unit_multiplier(tbl_text) or doc_multiplier
+
+                beg_arr: Optional[float] = None
+                end_arr: Optional[float] = None
+                direct_nrr: Optional[float] = None
+
                 for row in tbl:
                     row_str = " ".join(str(c).lower() for c in row)
                     if "beginning arr" in row_str or "starting arr" in row_str:
-                        for c in row:
-                            val = extract_financial_number(str(c))
-                            if val and val > 1000:
-                                beg_arr = val
-                                best_source = (doc.filename, p.page_number, f"Beginning ARR: ${val:,.2f}")
+                        for cell in reversed(row):
+                            v = extract_financial_number(cell)
+                            if v and v > 0:
+                                beg_arr = v * tbl_multiplier
                                 break
                     if "ending arr" in row_str:
-                        for c in row:
-                            val = extract_financial_number(str(c))
-                            if val and val > 1000:
-                                end_arr = val
-                                best_source = (doc.filename, p.page_number, f"Ending ARR: ${val:,.2f}")
+                        for cell in reversed(row):
+                            v = extract_financial_number(cell)
+                            if v and v > 0:
+                                end_arr = v * tbl_multiplier
                                 break
                     if any(k in row_str for k in ["net revenue retention", "net dollar retention", "nrr", "ndr"]):
-                        for c in row:
-                            val = extract_financial_number(str(c))
-                            if val and 50 <= val <= 250:
-                                direct_nrr = val
-                                best_source = (doc.filename, p.page_number, f"Reported NRR: {val}%")
+                        for cell in reversed(row):
+                            v = extract_financial_number(cell)
+                            if v and 50 <= v <= 250:
+                                direct_nrr = v
                                 break
 
-            # Text lines check
-            for line in p.text.splitlines():
-                l_lower = line.lower()
-                if any(k in l_lower for k in ["net revenue retention", "net retention", "nrr", "ndr"]) and ("%" in line or "percent" in l_lower):
-                    nums = re.findall(r"([0-9]{2,3}(?:\.[0-9]+)?)\s*%", line)
-                    if nums:
-                        direct_nrr = float(nums[0])
-                        best_source = (doc.filename, p.page_number, line.strip())
+                if beg_arr and end_arr and beg_arr > 0:
+                    nrr = round((end_arr / beg_arr) * 100.0, 1)
+                    is_plausible, _ = check_plausibility("nrr", nrr)
+                    status, conf = determine_extraction_status(
+                        is_table=True,
+                        same_document=True,
+                        is_plausible=is_plausible,
+                        has_conflict=False
+                    )
+                    candidates.append({
+                        "nrr": nrr,
+                        "beg_arr": beg_arr,
+                        "end_arr": end_arr,
+                        "doc_name": doc.filename,
+                        "page": p.page_number,
+                        "is_table": True,
+                        "status": status,
+                        "confidence": conf,
+                        "snippet": sanitize_snippet(f"Beginning ARR: ${beg_arr:,.2f} | Ending ARR: ${end_arr:,.2f} | NRR: {nrr}%")
+                    })
+                elif direct_nrr is not None:
+                    is_plausible, _ = check_plausibility("nrr", direct_nrr)
+                    status, conf = determine_extraction_status(
+                        is_table=True,
+                        same_document=True,
+                        is_plausible=is_plausible,
+                        has_conflict=False
+                    )
+                    candidates.append({
+                        "nrr": direct_nrr,
+                        "beg_arr": None,
+                        "end_arr": None,
+                        "doc_name": doc.filename,
+                        "page": p.page_number,
+                        "is_table": True,
+                        "status": status,
+                        "confidence": conf,
+                        "snippet": sanitize_snippet(f"Reported NRR: {direct_nrr}%")
+                    })
 
-    if beg_arr and end_arr and beg_arr > 0:
-        nrr = round((end_arr / beg_arr) * 100.0, 1)
-        src_file = best_source[0] if best_source else docs[0].filename
-        src_page = best_source[1] if best_source else 1
-        snippet = sanitize_snippet(f"Beginning ARR: ${beg_arr:,.2f} | Ending ARR: ${end_arr:,.2f} | Calculated NRR: {nrr}%")
-        return {
-            "answer_value": nrr,
-            "confidence": 1.0,
-            "status": "AUTO_FILLED",
-            "method": "FINANCIAL_TABLE",
-            "formula": "nrr_pct = (ending_arr / beginning_arr) * 100",
-            "formula_inputs": {"beginning_arr": beg_arr, "ending_arr": end_arr},
-            "source_file": src_file,
-            "page": src_page,
-            "snippet": snippet
-        }
-    elif direct_nrr is not None:
-        src_file = best_source[0] if best_source else docs[0].filename
-        src_page = best_source[1] if best_source else 1
-        snippet = sanitize_snippet(f"Reported NRR: {direct_nrr}% ({best_source[2] if best_source else ''})")
-        return {
-            "answer_value": direct_nrr,
-            "confidence": 1.0,
-            "status": "AUTO_FILLED",
-            "method": "FINANCIAL_TABLE",
-            "formula": "nrr_pct = direct_reported_nrr",
-            "formula_inputs": {"nrr_pct": direct_nrr},
-            "source_file": src_file,
-            "page": src_page,
-            "snippet": snippet
-        }
+    if not candidates:
+        return None
 
-    return None
+    chosen = candidates[0]
+    return {
+        "answer_value": chosen["nrr"],
+        "confidence": chosen["confidence"],
+        "status": chosen["status"],
+        "method": "FINANCIAL_TABLE",
+        "formula": "nrr_pct = (ending_arr / beginning_arr) * 100",
+        "formula_inputs": {
+            "beginning_arr": chosen.get("beg_arr"),
+            "ending_arr": chosen.get("end_arr"),
+            "source_is_table": chosen["is_table"]
+        },
+        "source_file": chosen["doc_name"],
+        "page": chosen["page"],
+        "snippet": chosen["snippet"]
+    }
 
 
 def extract_budget_variance(
@@ -397,49 +785,107 @@ def extract_budget_variance(
     """
     Extracts budget vs actual revenue variance shortfall:
     Formula: shortfall_pct = max(0, ((budget_revenue - actual_revenue) / budget_revenue) * 100)
+    Rule: Budget and Actual revenue must come from the same document/table.
     """
-    budget_rev: Optional[float] = None
-    actual_rev: Optional[float] = None
-    best_source: Optional[Tuple[str, int, str]] = None
+    candidates: List[Dict[str, Any]] = []
 
     for doc in docs:
+        doc_multiplier = 1.0
+        for p in doc.pages:
+            m = detect_unit_multiplier(p.text)
+            if m > 1.0:
+                doc_multiplier = m
+                break
+
         for p in doc.pages:
             for tbl in p.tables:
+                tbl_text = " ".join(" ".join(str(c) for c in r) for r in tbl[:3])
+                tbl_multiplier = detect_unit_multiplier(tbl_text) or doc_multiplier
+
+                budget_rev: Optional[float] = None
+                actual_rev: Optional[float] = None
+                direct_shortfall: Optional[float] = None
+
                 for row in tbl:
                     row_str = " ".join(str(c).lower() for c in row)
                     if any(k in row_str for k in ["budget revenue", "budgeted revenue", "plan revenue", "board budget"]) and budget_rev is None:
-                        for c in row:
-                            val = extract_financial_number(str(c))
-                            if val and val > 1000:
-                                budget_rev = val
-                                best_source = (doc.filename, p.page_number, f"Budget Revenue: ${val:,.2f}")
+                        for cell in reversed(row):
+                            v = extract_financial_number(cell)
+                            if v and v > 0:
+                                budget_rev = v * tbl_multiplier
                                 break
                     if any(k in row_str for k in ["actual revenue", "actuals revenue", "actual total revenue"]) and actual_rev is None:
-                        for c in row:
-                            val = extract_financial_number(str(c))
-                            if val and val > 1000:
-                                actual_rev = val
-                                best_source = (doc.filename, p.page_number, f"Actual Revenue: ${val:,.2f}")
+                        for cell in reversed(row):
+                            v = extract_financial_number(cell)
+                            if v and v > 0:
+                                actual_rev = v * tbl_multiplier
+                                break
+                    if any(k in row_str for k in ["variance shortfall %", "revenue shortfall %", "budget variance %"]):
+                        for cell in reversed(row):
+                            v = extract_financial_number(cell)
+                            if v is not None and 0.0 <= v <= 100.0:
+                                direct_shortfall = v
                                 break
 
-    if budget_rev and actual_rev and budget_rev > 0:
-        shortfall = round(max(0.0, ((budget_rev - actual_rev) / budget_rev) * 100.0), 1)
-        src_file = best_source[0] if best_source else docs[0].filename
-        src_page = best_source[1] if best_source else 1
-        snippet = sanitize_snippet(f"Budget Revenue: ${budget_rev:,.2f} | Actual Revenue: ${actual_rev:,.2f} | Revenue Shortfall: {shortfall}%")
-        return {
-            "answer_value": shortfall,
-            "confidence": 1.0,
-            "status": "AUTO_FILLED",
-            "method": "FINANCIAL_TABLE",
-            "formula": "shortfall_pct = max(0, ((budget_revenue - actual_revenue) / budget_revenue) * 100)",
-            "formula_inputs": {"budget_revenue": budget_rev, "actual_revenue": actual_rev},
-            "source_file": src_file,
-            "page": src_page,
-            "snippet": snippet
-        }
+                if budget_rev and actual_rev and budget_rev > 0:
+                    shortfall = round(max(0.0, ((budget_rev - actual_rev) / budget_rev) * 100.0), 1)
+                    is_plausible, _ = check_plausibility("budget_variance", shortfall)
+                    status, conf = determine_extraction_status(
+                        is_table=True,
+                        same_document=True,
+                        is_plausible=is_plausible,
+                        has_conflict=False
+                    )
+                    candidates.append({
+                        "shortfall": shortfall,
+                        "budget": budget_rev,
+                        "actual": actual_rev,
+                        "doc_name": doc.filename,
+                        "page": p.page_number,
+                        "is_table": True,
+                        "status": status,
+                        "confidence": conf,
+                        "snippet": sanitize_snippet(f"Budget Revenue: ${budget_rev:,.2f} | Actual Revenue: ${actual_rev:,.2f} | Shortfall: {shortfall}%")
+                    })
+                elif direct_shortfall is not None:
+                    is_plausible, _ = check_plausibility("budget_variance", direct_shortfall)
+                    status, conf = determine_extraction_status(
+                        is_table=True,
+                        same_document=True,
+                        is_plausible=is_plausible,
+                        has_conflict=False
+                    )
+                    candidates.append({
+                        "shortfall": direct_shortfall,
+                        "budget": None,
+                        "actual": None,
+                        "doc_name": doc.filename,
+                        "page": p.page_number,
+                        "is_table": True,
+                        "status": status,
+                        "confidence": conf,
+                        "snippet": sanitize_snippet(f"Reported Revenue Variance Shortfall: {direct_shortfall}%")
+                    })
 
-    return None
+    if not candidates:
+        return None
+
+    chosen = candidates[0]
+    return {
+        "answer_value": chosen["shortfall"],
+        "confidence": chosen["confidence"],
+        "status": chosen["status"],
+        "method": "FINANCIAL_TABLE",
+        "formula": "shortfall_pct = max(0, ((budget_revenue - actual_revenue) / budget_revenue) * 100)",
+        "formula_inputs": {
+            "budget_revenue": chosen.get("budget"),
+            "actual_revenue": chosen.get("actual"),
+            "source_is_table": chosen["is_table"]
+        },
+        "source_file": chosen["doc_name"],
+        "page": chosen["page"],
+        "snippet": chosen["snippet"]
+    }
 
 
 def extract_ebitda_addbacks(
@@ -448,49 +894,115 @@ def extract_ebitda_addbacks(
     """
     Extracts EBITDA add-backs percentage:
     Formula: ebitda_addbacks_pct = (management_addbacks / ebitda) * 100
+    Rule: Add-backs and EBITDA must come from the same document/table.
+    Never match labels containing "adjusted EBITDA" alone without "adjustment" / "add-back".
     """
-    addbacks: Optional[float] = None
-    ebitda: Optional[float] = None
-    best_source: Optional[Tuple[str, int, str]] = None
+    candidates: List[Dict[str, Any]] = []
 
     for doc in docs:
+        doc_multiplier = 1.0
+        for p in doc.pages:
+            m = detect_unit_multiplier(p.text)
+            if m > 1.0:
+                doc_multiplier = m
+                break
+
         for p in doc.pages:
             for tbl in p.tables:
+                tbl_text = " ".join(" ".join(str(c) for c in r) for r in tbl[:3])
+                tbl_multiplier = detect_unit_multiplier(tbl_text) or doc_multiplier
+
+                addbacks_val: Optional[float] = None
+                addbacks_label: str = ""
+                ebitda_val: Optional[float] = None
+                ebitda_label: str = ""
+
                 for row in tbl:
                     row_str = " ".join(str(c).lower() for c in row)
-                    if any(k in row_str for k in ["total add-backs", "management add-backs", "ebitda adjustments", "addbacks"]) and addbacks is None:
-                        for c in row:
-                            val = extract_financial_number(str(c))
-                            if val and val > 0:
-                                addbacks = val
-                                best_source = (doc.filename, p.page_number, f"Management Add-backs: ${val:,.2f}")
-                                break
-                    if any(k in row_str for k in ["reported ebitda", "unadjusted ebitda", "ebitda"]) and ebitda is None:
-                        for c in row:
-                            val = extract_financial_number(str(c))
-                            if val and abs(val) > 1000:
-                                ebitda = abs(val)
-                                best_source = (doc.filename, p.page_number, f"EBITDA: ${val:,.2f}")
+
+                    # Add-back check with synonym list
+                    # RULE: never match labels containing "adjusted EBITDA" alone!
+                    is_addback_row = any(syn in row_str for syn in ADDBACK_SYNONYMS)
+                    if "adjusted ebitda" in row_str and not any(k in row_str for k in ["adjustment", "adjustments", "add-back", "addback", "add back"]):
+                        is_addback_row = False
+
+                    if is_addback_row and addbacks_val is None:
+                        for cell in reversed(row):
+                            v = extract_financial_number(cell)
+                            if v is not None and v > 0:
+                                addbacks_val = v * tbl_multiplier
+                                addbacks_label = str(row[0]).strip()
                                 break
 
-    if addbacks is not None and ebitda is not None and ebitda > 0:
-        addback_pct = round((addbacks / ebitda) * 100.0, 1)
-        src_file = best_source[0] if best_source else docs[0].filename
-        src_page = best_source[1] if best_source else 1
-        snippet = sanitize_snippet(f"Management Add-backs: ${addbacks:,.2f} | EBITDA: ${ebitda:,.2f} | Add-backs Percentage: {addback_pct}%")
+                    # Reported EBITDA check (unadjusted / base EBITDA)
+                    if any(k in row_str for k in ["reported ebitda", "unadjusted ebitda", "reported operating ebitda", "ebitda"]) and ebitda_val is None:
+                        if not any(k in row_str for k in ["adjustment", "adjustments", "add-back", "addback"]):
+                            for cell in reversed(row):
+                                v = extract_financial_number(cell)
+                                if v is not None and abs(v) > 0:
+                                    ebitda_val = abs(v) * tbl_multiplier
+                                    ebitda_label = str(row[0]).strip()
+                                    break
+
+                if addbacks_val is not None and ebitda_val is not None and ebitda_val > 0:
+                    pct = round((addbacks_val / ebitda_val) * 100.0, 1)
+                    is_plausible, err_msg = check_plausibility("ebitda_addbacks", pct)
+                    status, conf = determine_extraction_status(
+                        is_table=True,
+                        same_document=True,
+                        is_plausible=is_plausible,
+                        has_conflict=False
+                    )
+                    snip = sanitize_snippet(
+                        f"Add-backs: ${addbacks_val:,.2f} ({addbacks_label}) | EBITDA: ${ebitda_val:,.2f} ({ebitda_label}) | Share: {pct}%"
+                    )
+                    candidates.append({
+                        "pct": pct,
+                        "addbacks": addbacks_val,
+                        "ebitda": ebitda_val,
+                        "doc_name": doc.filename,
+                        "page": p.page_number,
+                        "is_table": True,
+                        "is_plausible": is_plausible,
+                        "status": status,
+                        "confidence": conf,
+                        "snippet": snip
+                    })
+
+    if not candidates:
+        return None
+
+    unique_pcts = {round(c["pct"], 1): c for c in candidates}
+    if len(unique_pcts) > 1 and (max(unique_pcts.keys()) - min(unique_pcts.keys()) > 1.0):
+        c_strs = [f"{c['doc_name']} (p.{c['page']}): {c['pct']}%" for c in candidates]
         return {
-            "answer_value": addback_pct,
-            "confidence": 1.0,
-            "status": "AUTO_FILLED",
+            "answer_value": list(unique_pcts.keys())[0],
+            "confidence": 0.50,
+            "status": "NEEDS_CONFIRMATION",
             "method": "FINANCIAL_TABLE",
             "formula": "ebitda_addbacks_pct = (management_addbacks / ebitda) * 100",
-            "formula_inputs": {"management_addbacks": addbacks, "ebitda": ebitda},
-            "source_file": src_file,
-            "page": src_page,
-            "snippet": snippet
+            "formula_inputs": {"conflict": True, "candidates": [c["pct"] for c in candidates]},
+            "source_file": candidates[0]["doc_name"],
+            "page": candidates[0]["page"],
+            "snippet": sanitize_snippet(f"Conflicting add-backs percentages detected: {' | '.join(c_strs)}")
         }
 
-    return None
+    chosen = candidates[0]
+    return {
+        "answer_value": chosen["pct"],
+        "confidence": chosen["confidence"],
+        "status": chosen["status"],
+        "method": "FINANCIAL_TABLE",
+        "formula": "ebitda_addbacks_pct = (management_addbacks / ebitda) * 100",
+        "formula_inputs": {
+            "management_addbacks": chosen["addbacks"],
+            "ebitda": chosen["ebitda"],
+            "source_is_table": chosen["is_table"]
+        },
+        "source_file": chosen["doc_name"],
+        "page": chosen["page"],
+        "snippet": chosen["snippet"]
+    }
 
 
 # =========================================================================
@@ -505,10 +1017,10 @@ def detect_certificate_or_report(
     """
     Detects official audit reports or registrations.
     STRICT REQUIREMENT: Result is labeled "document found", NEVER "compliant".
+    Status is strictly NEEDS_CONFIRMATION, never AUTO_FILLED.
     """
     qt = question_text.lower()
     
-    # Determine target criteria
     target_terms: List[str] = []
     if "soc 2" in qt or "soc2" in qt:
         target_terms = ["soc 2", "type ii", "type 2", "service organization control", "trust services criteria"]
@@ -518,12 +1030,12 @@ def detect_certificate_or_report(
         target_terms = ["iso 27001", "information security management system", "iso/iec 27001"]
     elif "fda" in qt and ("registration" in qt or "807" in qt or "510(k)" in qt):
         target_terms = ["fda establishment registration", "21 cfr part 807", "device listing", "fei number", "510(k)"]
-    elif "pci-dss" in qt or "pci dss" in qt:
-        target_terms = ["pci-dss", "report on compliance", "roc", "qualified security assessor", "qsa"]
+    elif "hitrust" in qt:
+        target_terms = ["hitrust", "csf certification", "common security framework"]
+    elif "standing" in qt or "good standing" in qt:
+        target_terms = ["good standing", "certificate of good standing", "secretary of state"]
     else:
-        # Generic extract from question text keywords
-        words = [w for w in re.findall(r"\b[A-Za-z0-9\-]{3,}\b", qt) if w not in ["the", "does", "company", "have", "are", "and", "for", "with", "audit", "report"]]
-        target_terms = words[:3]
+        target_terms = [w for w in re.findall(r"\b[A-Za-z0-9\-]{4,}\b", qt) if w not in ["company", "does", "have", "maintain", "current", "annual"]]
 
     if not target_terms:
         return None
@@ -532,10 +1044,9 @@ def detect_certificate_or_report(
         for p in doc.pages:
             p_text = p.text
             p_lower = p_text.lower()
-            
+
             matched_terms = [t for t in target_terms if t in p_lower]
-            if len(matched_terms) >= 1:
-                # Find match index for snippet
+            if matched_terms:
                 first_term = matched_terms[0]
                 idx = p_lower.find(first_term)
                 start = max(0, idx - 100)
@@ -543,15 +1054,15 @@ def detect_certificate_or_report(
                 raw_snip = p_text[start:end]
                 
                 # Confidence determination
-                confidence = 0.90 if len(matched_terms) >= 2 or doc.file_type == "certificate_or_report" else 0.65
-                status = "AUTO_FILLED" if confidence >= CONFIDENCE_T_HIGH else "NEEDS_CONFIRMATION"
+                confidence = 0.70 if len(matched_terms) >= 2 or doc.file_type == "certificate_or_report" else 0.50
+                status = "NEEDS_CONFIRMATION"
 
                 snippet = sanitize_snippet(
                     f"Document found: '{doc.filename}' (Page {p.page_number}). Matched: {', '.join(matched_terms)}. Excerpt: ...{raw_snip}..."
                 )
 
                 return {
-                    "answer_value": True,
+                    "answer_value": "document found",
                     "confidence": confidence,
                     "status": status,
                     "method": "CERTIFICATE_OR_REPORT",
@@ -579,10 +1090,10 @@ def detect_policy_document(
     """
     Detects presence of formal operational / governance policy documents.
     STRICT REQUIREMENT: Result is labeled "document found", NEVER "compliant".
+    Status is strictly NEEDS_CONFIRMATION, never AUTO_FILLED.
     """
     qt = question_text.lower()
     
-    # Identify policy domain
     domain_terms: List[str] = []
     if any(k in qt for k in ["bcp", "disaster recovery", "business continuity"]):
         domain_terms = ["business continuity", "disaster recovery", "bcp", "dr plan", "rto", "rpo", "failover"]
@@ -618,15 +1129,15 @@ def detect_policy_document(
                 end = min(len(p_text), idx + 250)
                 raw_snip = p_text[start:end]
 
-                confidence = 0.90 if len(matches) >= 2 or doc.file_type == "policy" else 0.60
-                status = "AUTO_FILLED" if confidence >= CONFIDENCE_T_HIGH else "NEEDS_CONFIRMATION"
+                confidence = 0.70 if len(matches) >= 2 or doc.file_type == "policy" else 0.50
+                status = "NEEDS_CONFIRMATION"
 
                 snippet = sanitize_snippet(
                     f"Document found: '{doc.filename}' (Page {p.page_number}). Matched: {', '.join(matches)}. Excerpt: ...{raw_snip}..."
                 )
 
                 return {
-                    "answer_value": True,
+                    "answer_value": "document found",
                     "confidence": confidence,
                     "status": status,
                     "method": "POLICY_DOC",
@@ -685,11 +1196,9 @@ def extract_answer_for_question(
             result = detect_policy_document(qid, qtext, docs)
 
         elif ev_type == "CONTRACT_CLAUSE":
-            # Per prompt: Do not integrate CUAD model yet
             result = None
 
     if result is None:
-        # Fallback to MANUAL_REQUIRED
         method = ev_type if ev_type in ("FINANCIAL_TABLE", "CERTIFICATE_OR_REPORT", "POLICY_DOC") else "MANUAL"
         result = {
             "answer_value": None,
@@ -705,7 +1214,6 @@ def extract_answer_for_question(
             "formula_inputs": None
         }
 
-    # Strict privacy logging: IDs and status only, never document text or values
     logger.info(
         "Extraction executed: assessment_id=%s, question_id=%s, method=%s, status=%s, confidence=%.2f",
         assessment_id or "NONE",
@@ -727,7 +1235,6 @@ def compute_extraction_coverage_report(
     Counts how many scored questions are auto-extractable vs manual.
     Never rounds up!
     """
-    # Only scored applicable questions (exclude disclosed and routing)
     scored_questions = [
         q for q in applicable_questions
         if q.get("review_status") != "DRAFT"
@@ -753,7 +1260,6 @@ def compute_extraction_coverage_report(
         else:
             by_method["SELF_ATTESTED"] += 1
 
-        # In M5 without CUAD, auto-extractable methods are FINANCIAL_TABLE, CERTIFICATE_OR_REPORT, POLICY_DOC
         if ev in ("FINANCIAL_TABLE", "CERTIFICATE_OR_REPORT", "POLICY_DOC"):
             auto_extractable += 1
         else:

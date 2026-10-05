@@ -72,9 +72,9 @@ export default function DataRoomUploadPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const getAuthHeaders = useCallback(() => {
-    const token = typeof window !== "undefined" ? localStorage.getItem("ledgerlight_token") : null;
+    const token = typeof window !== "undefined" ? (localStorage.getItem("ledgerlight_token") || "demo-token-founder") : "demo-token-founder";
     return {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      Authorization: `Bearer ${token}`,
     };
   }, []);
 

@@ -218,10 +218,10 @@ export default function ReadinessReportPage() {
       }
       setErrorMsg(null);
 
-      const token = typeof window !== "undefined" ? localStorage.getItem("ledgerlight_token") : null;
+      const token = typeof window !== "undefined" ? (localStorage.getItem("ledgerlight_token") || "demo-token-founder") : "demo-token-founder";
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        Authorization: `Bearer ${token}`,
       };
 
       // 1. Fetch score & trace

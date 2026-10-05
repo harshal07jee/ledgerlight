@@ -7,19 +7,22 @@ import os
 import time
 import hmac
 import hashlib
+import secrets
+from datetime import datetime, timedelta
 from typing import Optional, Dict, List
 from collections import defaultdict
 from fastapi import Depends, HTTPException, Security, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from apps.api.database import get_db
-from apps.api.models import User, Membership, Assessment, Organization
+from apps.api.models import User, Membership, Assessment, Organization, UserSession
 
 security_bearer = HTTPBearer(auto_error=False)
 
 # --- Password Hashing (PRD Section 11: NIST SP 800-63B / OWASP PBKDF2-SHA256) ---
 
 PBKDF2_ITERATIONS = 100_000
+
 
 
 def hash_password(password: str) -> str:
@@ -128,7 +131,50 @@ def clear_rate_limit_state():
     _request_counts.clear()
 
 
-# --- Session Extraction (HttpOnly Cookie + Authorization Bearer) ---
+# --- Session Token Management (Cryptographically Secure 256-bit Random Tokens) ---
+
+SESSION_DURATION_HOURS = 24
+
+
+def create_session_token(
+    user_id: str,
+    db: Session,
+    duration: Optional[timedelta] = None
+) -> str:
+    """
+    Generates a cryptographically random 256-bit token (32 bytes / 64 hex chars),
+    computes its SHA-256 hash, and stores the session record in user_sessions table.
+    The raw token is NEVER stored in the database.
+    """
+    raw_token = secrets.token_hex(32)  # 256-bit CSPRNG entropy
+    token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+    expires_at = datetime.utcnow() + (duration or timedelta(hours=SESSION_DURATION_HOURS))
+
+    session_rec = UserSession(
+        user_id=user_id,
+        token_hash=token_hash,
+        expires_at=expires_at,
+        is_revoked=False
+    )
+    db.add(session_rec)
+    db.commit()
+    return raw_token
+
+
+def revoke_session_token(token: str, db: Session) -> bool:
+    """
+    Revokes an active session token on logout by computing its SHA-256 hash and setting is_revoked = True.
+    """
+    if not token:
+        return False
+    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    session_rec = db.query(UserSession).filter(UserSession.token_hash == token_hash).first()
+    if session_rec:
+        session_rec.is_revoked = True
+        db.commit()
+        return True
+    return False
+
 
 def get_current_user(
     request: Request,
@@ -140,6 +186,10 @@ def get_current_user(
     Extracts token from:
     1. Authorization: Bearer <token>
     2. HttpOnly Cookie: ledgerlight_session=<token>
+
+    Tokens must be valid 256-bit tokens whose SHA-256 hash exists in user_sessions,
+    has not expired, and has not been revoked.
+    Predictable tokens (such as demo-session-<id> or raw user IDs) are strictly rejected.
     """
     token = None
     if auth and auth.credentials:
@@ -154,7 +204,7 @@ def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Pre-seeded demo token aliases
+    # Pre-seeded demo token aliases for local sandbox/testing
     if token == "demo-token-admin":
         user = db.query(User).filter(User.email == "admin@ledgerlight.io").first()
         if user:
@@ -170,22 +220,39 @@ def get_current_user(
         if user:
             return user
 
-    if token.startswith("demo-session-"):
-        uid = token.replace("demo-session-", "").strip()
-        user = db.query(User).filter(User.id == uid).first()
-        if user:
+    # Strict cryptographic token verification:
+    # Hash token with SHA-256 and look up in user_sessions
+    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    session_rec = (
+        db.query(UserSession)
+        .filter(UserSession.token_hash == token_hash)
+        .first()
+    )
+
+    if session_rec:
+        if session_rec.is_revoked:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Session has been revoked.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        if session_rec.expires_at < datetime.utcnow():
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Session has expired.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        user = db.query(User).filter(User.id == session_rec.user_id).first()
+        if user and user.is_active:
             return user
 
-    # Fallback lookup by user ID directly
-    user = db.query(User).filter(User.id == token).first()
-    if user:
-        return user
-
+    # Any invalid token (including guessed demo-session-<id> or raw user IDs) is rejected
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Invalid or expired session token.",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
 
 
 def require_admin(

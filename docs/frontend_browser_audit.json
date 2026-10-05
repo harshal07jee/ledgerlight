@@ -1,0 +1,197 @@
+[
+  {
+    "name": "Landing / Home Page",
+    "url": "http://localhost:3000/",
+    "title": "Ledgerlight \u2014 Diligence Readiness Platform",
+    "h1": [
+      "Find your deal-breakers before an investor does."
+    ],
+    "h2": [
+      "A transparent 3-step diligence pipeline.",
+      "The 11 Universal Diligence Dimensions",
+      "Ready to audit your data room?"
+    ],
+    "tablesCount": 0,
+    "tables": [],
+    "badges": [],
+    "buttonsCount": 1,
+    "emptyStates": [],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "roadmapTabAudit": null,
+    "contentSample": "Ledgerlight AUDIT TOOL 11 Dimensions How It Works Regulatory Sources Question Bank Start Assessment \u25cf Diligence Readiness Engine for US Transactions Find your deal-breakers before an investor does. An explainable, deterministic readiness assessment for companies preparing for Series A+, growth equity, M&A, or debt financing. Grounded in NVCA model agreements and audited against 11 institutional d"
+  },
+  {
+    "name": "Onboarding Page",
+    "url": "http://localhost:3000/onboarding",
+    "title": "Ledgerlight \u2014 Diligence Readiness Platform",
+    "h1": [
+      "Organization Setup"
+    ],
+    "h2": [
+      "1. Principal Credentials & Entity Name"
+    ],
+    "tablesCount": 0,
+    "tables": [],
+    "badges": [],
+    "buttonsCount": 1,
+    "emptyStates": [],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "roadmapTabAudit": null,
+    "contentSample": "Ledgerlight AUDIT TOOL 11 Dimensions How It Works Regulatory Sources Question Bank Start Assessment Ledgerlight AUDIT v1.0 Step 1 of 2 ASSESSMENT INITIALIZATION Organization Setup Create your workspace to run institutional-grade audit checks before external investors open your data room. 1. Principal Credentials & Entity Name Audits are sealed to your tenant. No document text or answers are sha"
+  },
+  {
+    "name": "Question Bank Admin Page",
+    "url": "http://localhost:3000/admin",
+    "title": "Ledgerlight \u2014 Diligence Readiness Platform",
+    "h1": [
+      "Question Inventory & Review Console"
+    ],
+    "h2": [],
+    "tablesCount": 1,
+    "tables": [
+      {
+        "rows": 151,
+        "headers": [
+          "ID",
+          "INDUSTRY / DIM",
+          "QUESTION TEXT",
+          "EVIDENCE",
+          "RISK",
+          "SOURCE CITATION",
+          "STATUS",
+          "ACTION"
+        ]
+      }
+    ],
+    "badges": [
+      "DRAFT",
+      "UNREVIEWED_SEED",
+      "CRITICAL",
+      "AI_PRE_REVIEWED"
+    ],
+    "buttonsCount": 163,
+    "emptyStates": [
+      "401 Unauthorized Error"
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "roadmapTabAudit": null,
+    "contentSample": "Ledgerlight AUDIT TOOL 11 Dimensions How It Works Regulatory Sources Question Bank Start Assessment QUESTION BANK ADMINISTRATION (MILESTONE M1) Question Inventory & Review Console All changes version-controlled in question_versions TOTAL QUESTIONS 212 11 Core + 5 Branches APPROVED STATUS 3 Live in Assessments DRAFT CANDIDATES 35 Pending Human Review AUTO-EXTRACTABLE SHARE 60.4% 128 Auto / 84 Manua"
+  },
+  {
+    "name": "Assessment Questionnaire Page",
+    "url": "http://localhost:3000/assessment/test-browser-asmt-001",
+    "title": "Ledgerlight \u2014 Diligence Readiness Platform",
+    "h1": [
+      "Browser Verification SaaS Assessment"
+    ],
+    "h2": [
+      "AUDIT DIMENSIONS (11)",
+      "Governance & Corporate Structure"
+    ],
+    "tablesCount": 0,
+    "tables": [],
+    "badges": [
+      "CRITICAL"
+    ],
+    "buttonsCount": 36,
+    "emptyStates": [],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "roadmapTabAudit": null,
+    "contentSample": "Ledgerlight AUDIT TOOL 11 Dimensions How It Works Regulatory Sources Question Bank Start Assessment Ledgerlight AUDIT v1.0 Autosave active Data Room Verify Extractions View Readiness Report \u2192 Admin Console Browser Verification SaaS Assessment SOFTWARE B2B_ENTERPRISE Series B Change Industry 93 non-applicable questions hidden EVIDENCE COMPLETENESS: 2.4% (2 / 84 applicable questions answered) Provis"
+  },
+  {
+    "name": "Data Room Documents Page",
+    "url": "http://localhost:3000/assessment/test-browser-asmt-001/data-room",
+    "title": "Ledgerlight \u2014 Diligence Readiness Platform",
+    "h1": [
+      "Data Room & Document Ingestion"
+    ],
+    "h2": [
+      "Data Room Dropzone"
+    ],
+    "tablesCount": 1,
+    "tables": [
+      {
+        "rows": 3,
+        "headers": [
+          "DOCUMENT NAME",
+          "CLASSIFICATION TYPE",
+          "SIZE",
+          "PAGES",
+          "SHA-256 FINGERPRINT",
+          "STATUS",
+          "ACTIONS"
+        ]
+      }
+    ],
+    "badges": [],
+    "buttonsCount": 2,
+    "emptyStates": [],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "roadmapTabAudit": null,
+    "contentSample": "Ledgerlight AUDIT TOOL 11 Dimensions How It Works Regulatory Sources Question Bank Start Assessment Ledgerlight AUDIT v1.0 \u2190 Questionnaire Verify Extractions \u2192 Data Room & Document Ingestion Secure upload, format validation, and automated deterministic extraction. Questionnaire Data Room Verify Workspace Readiness Report 1. UPLOADED 2 Primary documents 2. PARSED & TEXT 2 With page & char offsets"
+  },
+  {
+    "name": "Extraction Verification Page",
+    "url": "http://localhost:3000/assessment/test-browser-asmt-001/verify",
+    "title": "Ledgerlight \u2014 Diligence Readiness Platform",
+    "h1": [
+      "Verification Workspace"
+    ],
+    "h2": [
+      "42 of 65 Scored Questions are Auto-Extractable (64.62%)"
+    ],
+    "tablesCount": 0,
+    "tables": [],
+    "badges": [],
+    "buttonsCount": 11,
+    "emptyStates": [],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "roadmapTabAudit": null,
+    "contentSample": "Ledgerlight AUDIT TOOL 11 Dimensions How It Works Regulatory Sources Question Bank Start Assessment Ledgerlight AUDIT v1.0 \u2190 Data Room View Report \u2192 Verification Workspace Review deterministic formulas, inspect evidence snippets, and confirm answers. Questionnaire Data Room Verify Workspace Readiness Report DILIGENCE AUTOMATION COVERAGE (M5) 42 of 65 Scored Questions are Auto-Extractable (64.62%"
+  },
+  {
+    "name": "Readiness Report & Roadmap Page",
+    "url": "http://localhost:3000/assessment/test-browser-asmt-001/report",
+    "title": "Ledgerlight \u2014 Diligence Readiness Platform",
+    "h1": [
+      "Assessment & Remediation Platform"
+    ],
+    "h2": [
+      "Dimension Readiness Scores & Transaction Weighting",
+      "Explanatory Score Trace (\u201cWhy this score\u201d)"
+    ],
+    "tablesCount": 1,
+    "tables": [
+      {
+        "rows": 2,
+        "headers": [
+          "ID",
+          "DIMENSION",
+          "AUDIT REQUIREMENT",
+          "ANSWER",
+          "EXPECTED RULE",
+          "RISK WT",
+          "POINTS LOST \u25bc",
+          "CITATION & SOURCE"
+        ]
+      }
+    ],
+    "badges": [],
+    "buttonsCount": 5,
+    "emptyStates": [],
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "roadmapTabAudit": {
+      "lanesFound": [],
+      "taskCardsCount": 0
+    },
+    "contentSample": "Ledgerlight AUDIT TOOL 11 Dimensions How It Works Regulatory Sources Question Bank Start Assessment Ledgerlight AUDIT v1.0 Export PDF Report \u2190 Workspace DILIGENCE READINESS AUDIT \u2022 VC GROWTH FINANCING Assessment & Remediation Platform Config v1.0.0 QB v1.0.0 Re-assess 1. Executive Score & Trace 100 pts 2. Remediation Roadmap Board 23 tasks 3. Re-assessment Delta Initial READINESS SCORE AUDIT READY"
+  }
+]

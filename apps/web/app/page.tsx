@@ -116,7 +116,7 @@ export default function LandingPage() {
                     <span className="font-mono text-ink-muted">Full Credit (100%)</span>
                   </div>
                   <p className="font-medium text-ink">
-                    Cash runway is 14.2 months (Threshold: $\ge 9$ mo).
+                    Cash runway is 14.2 months (Threshold: ≥ 9 mo).
                   </p>
                   <div className="text-ink-muted text-[11px]">
                     <strong>Source:</strong> Trailing 6-Month Cash Burn & Bank Balance Schedule

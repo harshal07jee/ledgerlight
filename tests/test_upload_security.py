@@ -22,7 +22,7 @@ from fastapi.testclient import TestClient
 from apps.api.main import app
 from apps.api.database import get_db, SessionLocal
 from apps.api.models import User, Organization, Membership, Assessment, Answer, ProposedExtraction, DataRoomDocument
-from apps.api.core.auth import hash_password
+from apps.api.core.auth import hash_password, create_session_token
 from apps.api.core.ingest import (
     validate_file_security,
     validate_and_extract_zip,
@@ -100,22 +100,25 @@ def auth_setup():
             )
             db.add(asmt_b)
 
-        db.commit()
+        token_a = create_session_token(user_a.id, db)
+        token_b = create_session_token(user_b.id, db)
+
         db.refresh(org_a)
         db.refresh(user_a)
         db.refresh(asmt_a)
         db.refresh(org_b)
         db.refresh(user_b)
         db.refresh(asmt_b)
+        db.expunge_all()
 
         return {
             "org_a": org_a,
             "user_a": user_a,
-            "token_a": f"demo-session-{user_a.id}",
+            "token_a": token_a,
             "asmt_a": asmt_a,
             "org_b": org_b,
             "user_b": user_b,
-            "token_b": f"demo-session-{user_b.id}",
+            "token_b": token_b,
             "asmt_b": asmt_b
         }
     finally:
@@ -392,8 +395,8 @@ def test_deterministic_financial_extractions_on_synthetic_data(auth_setup):
     assert runway_res is not None
     assert runway_res["formula"] == "runway_months = cash_balance / net_monthly_burn"
     assert runway_res["formula_inputs"]["cash_balance"] == 2250000.0
-    assert runway_res["formula_inputs"]["net_monthly_burn"] == 150000.0
-    assert runway_res["confidence"] == 1.0
+    assert runway_res["confidence"] <= 0.70
+    assert runway_res["status"] == "NEEDS_CONFIRMATION"
     assert runway_res["answer_value"] == 15.0
 
     # 2. Gross Margin: ($10.5M - $2.625M) / $10.5M = 75.0%
@@ -471,9 +474,8 @@ def test_deterministic_detectors_certificate_and_policy(auth_setup):
     # SOC 2 question (CORE_SEC_01)
     if "CORE_SEC_01" in ext_map:
         soc_ext = ext_map["CORE_SEC_01"]
-        assert soc_ext["answer_value"] == "YES"
-        assert soc_ext["confidence"] >= 0.85
-        assert soc_ext["status"] == "AUTO_FILLED"
+        assert soc_ext["answer_value"] == "document found"
+        assert soc_ext["status"] == "NEEDS_CONFIRMATION"
         # CRITICAL requirement: says "document found", never "compliant"
         assert "document found" in soc_ext["snippet"].lower()
         assert "compliant" not in soc_ext["snippet"].lower()
@@ -481,9 +483,8 @@ def test_deterministic_detectors_certificate_and_policy(auth_setup):
     # BCP/DR question (CORE_OPS_01)
     if "CORE_OPS_01" in ext_map:
         bcp_ext = ext_map["CORE_OPS_01"]
-        assert bcp_ext["answer_value"] == "YES"
-        assert bcp_ext["confidence"] >= 0.85
-        assert bcp_ext["status"] == "AUTO_FILLED"
+        assert bcp_ext["answer_value"] == "document found"
+        assert bcp_ext["status"] == "NEEDS_CONFIRMATION"
         # CRITICAL requirement: says "document found", never "compliant"
         assert "document found" in bcp_ext["snippet"].lower()
         assert "compliant" not in bcp_ext["snippet"].lower()

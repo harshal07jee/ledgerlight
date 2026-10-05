@@ -1,5 +1,5 @@
 from apps.api.database import Base
-from apps.api.models.organization import Organization, User, Membership, AuditLog, ConfigVersion
+from apps.api.models.organization import Organization, User, Membership, AuditLog, ConfigVersion, UserSession
 from apps.api.models.question import Question, QuestionVersion
 from apps.api.models.assessment import Assessment, Answer
 from apps.api.models.scoring import ScoreRun, ScoreTraceRow
@@ -13,6 +13,7 @@ __all__ = [
     "Membership",
     "AuditLog",
     "ConfigVersion",
+    "UserSession",
     "Question",
     "QuestionVersion",
     "Assessment",
@@ -23,4 +24,5 @@ __all__ = [
     "DataRoomDocument",
     "ProposedExtraction",
 ]
+
 

@@ -16,7 +16,8 @@ from apps.api.main import app
 from apps.api.core.auth import (
     clear_rate_limit_state,
     hash_password,
-    verify_password
+    verify_password,
+    create_session_token
 )
 from apps.api.models import User, Membership
 from apps.api.database import SessionLocal
@@ -235,7 +236,7 @@ def test_role_based_permissions_viewer_restrictions():
     membership = Membership(org_id=org_id, user_id=viewer_user.id, role="Viewer")
     db.add(membership)
     db.commit()
-    viewer_token = f"demo-session-{viewer_user.id}"
+    viewer_token = create_session_token(viewer_user.id, db)
     db.close()
 
     viewer_headers = {"Authorization": f"Bearer {viewer_token}"}
@@ -319,3 +320,147 @@ def test_rate_limiting_and_account_lockout_on_login():
     res_blocked = client.post("/auth/login", json={"email": email, "password": "CorrectPassword123!"})
     assert res_blocked.status_code == 429
     assert "temporarily locked" in res_blocked.json()["detail"]
+
+
+@pytest.fixture
+def setup_test_tenants():
+    import uuid
+    uid_s = str(uuid.uuid4())[:8]
+    res_a = client.post("/auth/signup", json={
+        "full_name": "Tenant A User",
+        "email": f"tenanta_{uid_s}@company-a.com",
+        "password": "Password123!",
+        "company_name": "Tenant A Org"
+    })
+    token_a = res_a.json()["access_token"]
+    user_a = res_a.json()["user"]
+    org_a_id = res_a.json()["organization"]["id"]
+
+    create_a = client.post(
+        f"/orgs/{org_a_id}/assessments",
+        headers={"Authorization": f"Bearer {token_a}"},
+        json={"name": "Tenant A Assessment", "industry": "SOFTWARE"}
+    )
+    asmt_a_id = create_a.json()["assessment"]["id"]
+
+    res_b = client.post("/auth/signup", json={
+        "full_name": "Tenant B User",
+        "email": f"tenantb_{uid_s}@company-b.com",
+        "password": "Password123!",
+        "company_name": "Tenant B Org"
+    })
+    token_b = res_b.json()["access_token"]
+    user_b = res_b.json()["user"]
+    org_b_id = res_b.json()["organization"]["id"]
+
+    return {
+        "user_a": {"id": user_a["id"], "token": token_a, "org_id": org_a_id},
+        "user_b": {"id": user_b["id"], "token": token_b, "org_id": org_b_id},
+        "assessment_a_id": asmt_a_id
+    }
+
+
+def test_guessing_demo_session_id_fails(setup_test_tenants):
+    """
+    STRICT REQUIREMENT: Guessing 'demo-session-<id>' or raw user IDs must fail with 401 Unauthorized.
+    Tokens must be random 256-bit hashed tokens.
+    """
+    tenants = setup_test_tenants
+    user_a_id = tenants["user_a"]["id"]
+    asmt_a_id = tenants["assessment_a_id"]
+
+    # 1. Guessing demo-session-<id>
+    guessed_token = f"demo-session-{user_a_id}"
+    res = client.get("/me", headers={"Authorization": f"Bearer {guessed_token}"})
+    assert res.status_code == 401
+    assert "Invalid or expired session token" in res.json()["detail"]
+
+    # 2. Guessing raw user ID
+    res_raw = client.get("/me", headers={"Authorization": f"Bearer {user_a_id}"})
+    assert res_raw.status_code == 401
+
+    # 3. Accessing assessment with guessed token
+    res_asmt = client.get(f"/assessments/{asmt_a_id}", headers={"Authorization": f"Bearer {guessed_token}"})
+    assert res_asmt.status_code == 401
+
+
+def test_cross_user_token_cannot_access_my_data(setup_test_tenants):
+    """
+    STRICT REQUIREMENT: Another user's legitimate token cannot access my data room, assessment, or org.
+    """
+    tenants = setup_test_tenants
+    user_b_token = tenants["user_b"]["token"]
+    asmt_a_id = tenants["assessment_a_id"]
+    org_a_id = tenants["user_a"]["org_id"]
+
+    b_headers = {"Authorization": f"Bearer {user_b_token}"}
+
+    # User B tries to view User A's assessment -> 403 Forbidden
+    res = client.get(f"/assessments/{asmt_a_id}", headers=b_headers)
+    assert res.status_code == 403
+    assert "Access denied" in res.json()["detail"]
+
+    # User B tries to update User A's assessment answers -> 403 Forbidden
+    res_put = client.put(
+        f"/assessments/{asmt_a_id}/answers/CORE_REV_QUAL_01",
+        headers=b_headers,
+        json={"value": True}
+    )
+    assert res_put.status_code == 403
+
+    # User B tries to view User A's org -> 403 Forbidden
+    res_org = client.get(f"/orgs/{org_a_id}", headers=b_headers)
+    assert res_org.status_code == 403
+
+
+
+def test_session_token_revocation_on_logout():
+    """
+    Validates that logging out revokes the session token, and subsequent requests fail.
+    """
+    # 1. Sign up a new user to obtain a fresh 256-bit token
+    email = "logout_test_user@company.com"
+    signup_res = client.post("/auth/signup", json={
+        "full_name": "Logout Test User",
+        "email": email,
+        "password": "Password123!",
+        "company_name": "Logout Corp"
+    })
+    assert signup_res.status_code == 200
+    token = signup_res.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # 2. Token works initially
+    me_res = client.get("/me", headers=headers)
+    assert me_res.status_code == 200
+    assert me_res.json()["email"] == email
+
+    # 3. Call /auth/logout with token
+    logout_res = client.post("/auth/logout", headers=headers)
+    assert logout_res.status_code == 200
+    assert logout_res.json()["status"] == "logged_out"
+
+    # 4. Token is now revoked -> 401 Unauthorized
+    revoked_res = client.get("/me", headers=headers)
+    assert revoked_res.status_code == 401
+    assert "revoked" in revoked_res.json()["detail"].lower()
+
+
+def test_expired_session_token_rejected():
+    """
+    Validates that expired session tokens are rejected with 401.
+    """
+    from datetime import timedelta
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.email == "founder@company.com").first()
+        assert user is not None
+        # Create a token that already expired 1 hour ago
+        expired_token = create_session_token(user.id, db, duration=timedelta(hours=-1))
+    finally:
+        db.close()
+
+    res = client.get("/me", headers={"Authorization": f"Bearer {expired_token}"})
+    assert res.status_code == 401
+    assert "expired" in res.json()["detail"].lower()
+

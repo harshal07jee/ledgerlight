@@ -1,0 +1,9 @@
+# CUSTOMER CONTRACT AND BILLING SCHEDULE - BY AFFILIATE
+Entity / Billing Account,Contracted ARR (USD),Notes
+Acme Global Enterprises - North America Division,1000000.00,Direct MSA
+Acme Global Enterprises - EMEA Subsidiary,800000.00,Affiliate Addendum
+Beta Corporation,1200000.00,Independent Account
+Gamma Dynamics Inc.,900000.00,Independent Account
+Delta Systems,850000.00,Independent Account
+All Remaining Customers Consolidated,5750000.00,Various
+Total Revenue,10500000.00,Reconciled Total ARR
