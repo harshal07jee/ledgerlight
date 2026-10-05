@@ -46,7 +46,8 @@ from apps.api.models import (
     ScoreTraceRow,
     RoadmapTask,
     DataRoomDocument,
-    ProposedExtraction
+    ProposedExtraction,
+    ExtractionAuditLog
 )
 from apps.api.core.scoring import compute_readiness_score, load_scoring_config
 from apps.api.core.roadmap import generate_roadmap_tasks_data, compute_reassessment_delta
@@ -2212,6 +2213,22 @@ def confirm_extraction(
         )
         db.add(ans)
 
+    # PRD 12.1 Logging: Zero document text stored
+    audit_entry = ExtractionAuditLog(
+        assessment_id=assessment.id,
+        question_id=ext.question_id,
+        method=ext.method,
+        model_name=ext.model_name or "roberta-base-squad2-cuad",
+        model_version=ext.model_version or "v1.0",
+        raw_score=ext.confidence,
+        calibrated_score=ext.calibrated_score,
+        status=ext.status,
+        user_action="confirmed",
+        final_value=ext.confirmed_value,
+        time_to_confirm_ms=ext.time_to_confirm_ms
+    )
+    db.add(audit_entry)
+
     db.commit()
     db.refresh(ext)
 
@@ -2258,6 +2275,22 @@ def reject_extraction(
         ans.notes = "Extraction rejected by user"
         ans.updated_at = datetime.utcnow()
 
+    # PRD 12.1 Logging: Zero document text stored
+    audit_entry = ExtractionAuditLog(
+        assessment_id=assessment.id,
+        question_id=ext.question_id,
+        method=ext.method,
+        model_name=ext.model_name or "roberta-base-squad2-cuad",
+        model_version=ext.model_version or "v1.0",
+        raw_score=ext.confidence,
+        calibrated_score=ext.calibrated_score,
+        status=ext.status,
+        user_action="rejected",
+        final_value=None,
+        time_to_confirm_ms=ext.time_to_confirm_ms
+    )
+    db.add(audit_entry)
+
     db.commit()
     return {"status": "rejected", "id": ext.id}
 
@@ -2269,17 +2302,19 @@ def bulk_confirm_extractions(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Bulk confirms proposed extractions."""
+    """
+    Bulk confirms proposed extractions.
+    Strict PRD 7.5 / M6 Invariant: Bulk confirm is allowed ONLY above T_high (>= 0.85).
+    """
     assessment = verify_assessment_access(assessment_id, current_user, db, require_edit=True)
     query = db.query(ProposedExtraction).filter(
         ProposedExtraction.assessment_id == assessment.id,
-        ProposedExtraction.user_action == "pending"
+        ProposedExtraction.user_action == "pending",
+        ProposedExtraction.confidence >= 0.85  # Gated strictly to T_high
     )
 
     if req.extraction_ids:
         query = query.filter(ProposedExtraction.id.in_(req.extraction_ids))
-    elif req.min_confidence is not None:
-        query = query.filter(ProposedExtraction.confidence >= req.min_confidence)
 
     pending_items = query.all()
     confirmed_count = 0
@@ -2307,6 +2342,22 @@ def bulk_confirm_extractions(
                 notes=f"Bulk-confirmed extraction from {ext.source_file or 'data room'}"
             )
             db.add(ans)
+
+        # PRD 12.1 Logging: Zero document text stored
+        audit_entry = ExtractionAuditLog(
+            assessment_id=assessment.id,
+            question_id=ext.question_id,
+            method=ext.method,
+            model_name=ext.model_name or "roberta-base-squad2-cuad",
+            model_version=ext.model_version or "v1.0",
+            raw_score=ext.confidence,
+            calibrated_score=ext.calibrated_score,
+            status=ext.status,
+            user_action="accepted",
+            final_value=ext.confirmed_value,
+            time_to_confirm_ms=0
+        )
+        db.add(audit_entry)
         confirmed_count += 1
 
     db.commit()

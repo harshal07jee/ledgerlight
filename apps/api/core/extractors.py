@@ -1222,7 +1222,53 @@ def extract_answer_for_question(
             result = detect_policy_document(qid, qtext, docs)
 
         elif ev_type == "CONTRACT_CLAUSE":
-            result = None
+            from apps.api.core.cuad import (
+                CONTRACT_QUESTION_TO_CUAD,
+                extract_best_clause_span,
+                gate_cuad_extraction
+            )
+            cuad_cat = CONTRACT_QUESTION_TO_CUAD.get(qid)
+            if cuad_cat and docs:
+                best_extraction = None
+                for doc in docs:
+                    filename = doc.filename if hasattr(doc, "filename") else (doc.get("filename") if isinstance(doc, dict) else "")
+                    if hasattr(doc, "pages"):
+                        doc_text = "\n".join(p.text for p in doc.pages if hasattr(p, "text"))
+                    elif isinstance(doc, dict):
+                        doc_text = doc.get("parsed_text", "")
+                    else:
+                        doc_text = ""
+
+                    if not doc_text:
+                        continue
+
+                    span_res = extract_best_clause_span(doc_text, cuad_cat)
+                    if span_res and (best_extraction is None or span_res["model_score"] > best_extraction["span_res"]["model_score"]):
+                        best_extraction = {
+                            "filename": filename,
+                            "span_res": span_res
+                        }
+
+                if best_extraction and best_extraction["span_res"]["model_score"] > 0:
+                    span_res = best_extraction["span_res"]
+                    gated = gate_cuad_extraction(qid, cuad_cat, span_res)
+                    result = {
+                        "answer_value": gated["answer_value"],
+                        "confidence": gated["model_score"],
+                        "model_score": gated["model_score"],
+                        "calibrated_score": gated.get("calibrated_score"),
+                        "status": gated["status"],
+                        "method": gated["method"],
+                        "source_file": best_extraction["filename"],
+                        "page": 1,
+                        "char_start": span_res.get("char_start"),
+                        "char_end": span_res.get("char_end"),
+                        "snippet": span_res.get("span_text"),
+                        "formula": None,
+                        "formula_inputs": None,
+                        "cuad_category": cuad_cat,
+                        "pure_presence": gated.get("pure_presence", False)
+                    }
 
     if result is None:
         method = ev_type if ev_type in ("FINANCIAL_TABLE", "CERTIFICATE_OR_REPORT", "POLICY_DOC") else "MANUAL"

@@ -407,10 +407,10 @@ export default function VerificationWorkspacePage() {
                     </div>
                   </div>
 
-                  {/* Confidence meter */}
+                  {/* Score & Gating Display (PRD 7.5: Label 'Model Score', never 'probability') */}
                   <div className="text-right">
                     <div className="font-mono text-xs text-[#5F6470]">
-                      Confidence:{" "}
+                      {ext.method === "CUAD_EXTRACTIVE_QA" ? "Model Score: " : "Confidence: "}
                       <span
                         className={`font-bold ${
                           ext.confidence >= 0.85
@@ -420,13 +420,17 @@ export default function VerificationWorkspacePage() {
                             : "text-[#B4382F]"
                         }`}
                       >
-                        {(ext.confidence * 100).toFixed(0)}%
+                        {ext.method === "CUAD_EXTRACTIVE_QA"
+                          ? ext.confidence.toFixed(2)
+                          : `${(ext.confidence * 100).toFixed(0)}%`}
                       </span>
                     </div>
                     <div className="mt-1 text-[11px] text-[#5F6470]">
-                      {ext.confidence === 1.0
-                        ? "All formula cells verified"
-                        : "Requires human verification"}
+                      {ext.confidence >= 0.85
+                        ? "Exceeds T_high (0.85)"
+                        : ext.confidence >= 0.50
+                        ? "Exceeds T_low (0.50) — Requires user review"
+                        : "Below T_low (0.50) — Manual input"}
                     </div>
                   </div>
                 </div>

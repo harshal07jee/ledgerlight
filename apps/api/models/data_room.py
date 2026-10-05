@@ -60,6 +60,13 @@ class ProposedExtraction(Base):
     formula = Column(Text, nullable=True)
     formula_inputs = Column(JSON, nullable=True)
     
+    # Model and score gating (PRD 7.4 & 12.1)
+    model_name = Column(String(100), nullable=True)
+    model_version = Column(String(50), nullable=True)
+    raw_score = Column(Float, nullable=True)
+    calibrated_score = Column(Float, nullable=True)
+    time_to_confirm_ms = Column(Integer, nullable=True)
+
     # Review & Confirmation (PRD 7.1)
     user_action = Column(String(50), nullable=False, default="pending")  # pending, accepted, edited, rejected
     confirmed_value = Column(JSON, nullable=True)
@@ -68,3 +75,27 @@ class ProposedExtraction(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     document = relationship("DataRoomDocument", back_populates="extractions")
+
+
+class ExtractionAuditLog(Base):
+    """
+    Structured extraction audit log per PRD Section 12.1.
+    Tracks model scores, user actions, and confirmation latencies.
+    CRITICAL SAFETY INVARIANT: Strictly NO document text or passage content is stored in this log.
+    """
+    __tablename__ = "extraction_audit_logs"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    assessment_id = Column(String(36), ForeignKey("assessments.id", ondelete="CASCADE"), nullable=False, index=True)
+    question_id = Column(String(100), nullable=False, index=True)
+    method = Column(String(50), nullable=False)  # CUAD_EXTRACTIVE_QA, FINANCIAL_TABLE, etc.
+    model_name = Column(String(100), nullable=True)
+    model_version = Column(String(50), nullable=True)
+    raw_score = Column(Float, nullable=False)
+    calibrated_score = Column(Float, nullable=True)
+    status = Column(String(50), nullable=False)  # AUTO_FILLED, NEEDS_CONFIRMATION, MANUAL_REQUIRED
+    user_action = Column(String(50), nullable=True)  # accepted, edited, rejected, pending
+    final_value = Column(JSON, nullable=True)
+    time_to_confirm_ms = Column(Integer, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
