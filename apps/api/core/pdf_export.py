@@ -273,6 +273,13 @@ def generate_assessment_pdf(
     ev_wt = origin_share.get("evidence_backed_weight", 0.0)
     sa_wt = origin_share.get("self_attested_weight", 0.0)
 
+    # Scored question review status breakdown (Pre-M5 Patch requirement)
+    rev_status = score_data.get("scored_question_review_status") or {}
+    ai_cnt = rev_status.get("AI_PRE_REVIEWED", 0)
+    seed_cnt = rev_status.get("UNREVIEWED_SEED", 0)
+    app_cnt = rev_status.get("APPROVED", 0)
+    tot_cnt = rev_status.get("total_scored", ai_cnt + seed_cnt + app_cnt)
+
     t_origin = Table([
         [
             Paragraph(
@@ -280,12 +287,22 @@ def generate_assessment_pdf(
                 f"Self-Attested <b>{sa_pct}%</b> ({sa_wt} pts)",
                 style_muted
             )
+        ],
+        [
+            Paragraph(
+                f"<b>Scored Question Audit Status:</b> "
+                f"AI Pre-Reviewed: <b>{ai_cnt}</b> &bull; "
+                f"Unreviewed Seed: <b>{seed_cnt}</b> &bull; "
+                f"Human Approved: <b>{app_cnt}</b> (Total Scored: {tot_cnt})",
+                style_muted
+            )
         ]
     ], colWidths=[500])
     t_origin.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, -1), COLOR_PAPER),
         ("BOX", (0, 0), (-1, -1), 0.5, COLOR_BORDER),
-        ("PADDING", (0, 0), (-1, -1), 6),
+        ("INNERGRID", (0, 0), (-1, -1), 0.5, COLOR_BORDER),
+        ("PADDING", (0, 0), (-1, -1), 5),
         ("ALIGN", (0, 0), (-1, -1), "CENTER"),
     ]))
     story.append(Spacer(1, 6))
@@ -515,6 +532,7 @@ def generate_assessment_pdf(
         ["Severity Weights", "CRITICAL=8, HIGH=5, MEDIUM=3, LOW=1"],
         ["Partial Compliance Multiplier", "0.5 (50%)"],
         ["Scored Weight Origin Share", f"Evidence-Backed: {ev_pct}% | Self-Attested: {sa_pct}%"],
+        ["Scored Question Review Status", f"AI_PRE_REVIEWED: {ai_cnt} | UNREVIEWED_SEED: {seed_cnt} | APPROVED: {app_cnt}"],
         ["Transaction Weight Matrix Status", "[ASSUMPTION] UNVALIDATED"]
     ]
     t_ver = Table(version_table_data, colWidths=[200, 300])

@@ -208,6 +208,9 @@ def compute_readiness_score(
     unscored_disclosures: List[Dict[str, Any]] = []
     self_attested_weight_sum: float = 0.0
     evidence_backed_weight_sum: float = 0.0
+    scored_ai_pre_reviewed_count: int = 0
+    scored_unreviewed_seed_count: int = 0
+    scored_approved_count: int = 0
 
     total_applicable = len(applicable_questions)
     answered_applicable = 0
@@ -270,6 +273,15 @@ def compute_readiness_score(
         # Answered applicable scored question
         answered_applicable += 1
         dim_accumulators[dim]["answered_count"] += 1
+
+        # Track scored question review status
+        q_status = str(q.get("review_status") or "UNREVIEWED_SEED").upper()
+        if q_status == "AI_PRE_REVIEWED":
+            scored_ai_pre_reviewed_count += 1
+        elif q_status == "APPROVED":
+            scored_approved_count += 1
+        else:
+            scored_unreviewed_seed_count += 1
 
         # Track weight origin (self-attested vs evidence-backed)
         ev_type = str(q.get("evidence_type", "SELF_ATTESTED")).upper()
@@ -472,6 +484,13 @@ def compute_readiness_score(
     completeness_pct = round((answered_applicable / total_applicable * 100.0), 1) if total_applicable > 0 else 0.0
     is_provisional = completeness_pct < provisional_threshold
 
+    scored_question_review_status = {
+        "AI_PRE_REVIEWED": scored_ai_pre_reviewed_count,
+        "UNREVIEWED_SEED": scored_unreviewed_seed_count,
+        "APPROVED": scored_approved_count,
+        "total_scored": scored_ai_pre_reviewed_count + scored_unreviewed_seed_count + scored_approved_count
+    }
+
     return {
         "overall_score": overall_score,
         "unconstrained_score": unconstrained_score,
@@ -492,6 +511,7 @@ def compute_readiness_score(
         },
         "weight_origin_share": weight_origin_share,
         "unscored_disclosures": unscored_disclosures,
+        "scored_question_review_status": scored_question_review_status,
         "trace_rows": trace_rows,
         "total_deductions": len(trace_rows),
         "total_points_lost": round(sum(r["points_lost"] for r in trace_rows), 2),

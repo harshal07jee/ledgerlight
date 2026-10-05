@@ -590,3 +590,66 @@ def test_golden_weight_origin_share_and_disclosures():
     assert res["trace_rows"][0]["question_id"] == "Q_SELF_1"
     assert res["trace_rows"][0]["origin"] == "self-attested"
 
+
+def test_golden_scored_question_review_status_counts():
+    """Assert scored questions review status breakdown is tracked accurately."""
+    applicable_questions = [
+        {
+            "question_id": "Q_AI_1",
+            "dimension": "GOVERNANCE",
+            "risk_weight": "MEDIUM",
+            "input_type": "BOOLEAN",
+            "pass_rule": {"type": "bool", "pass_when": True},
+            "review_status": "AI_PRE_REVIEWED"
+        },
+        {
+            "question_id": "Q_AI_2",
+            "dimension": "GOVERNANCE",
+            "risk_weight": "HIGH",
+            "input_type": "BOOLEAN",
+            "pass_rule": {"type": "bool", "pass_when": True},
+            "review_status": "AI_PRE_REVIEWED"
+        },
+        {
+            "question_id": "Q_SEED_1",
+            "dimension": "FIN_CONTROLS",
+            "risk_weight": "CRITICAL",
+            "input_type": "BOOLEAN",
+            "pass_rule": {"type": "bool", "pass_when": True},
+            "review_status": "UNREVIEWED_SEED"
+        },
+        {
+            "question_id": "Q_DISC_1",
+            "dimension": "FIN_CONTROLS",
+            "risk_weight": "MEDIUM",
+            "input_type": "TEXT",
+            "pass_rule": {"type": "disclosed"},
+            "review_status": "AI_PRE_REVIEWED"
+        },
+        {
+            "question_id": "Q_UNANS_1",
+            "dimension": "GOVERNANCE",
+            "risk_weight": "LOW",
+            "input_type": "BOOLEAN",
+            "pass_rule": {"type": "bool", "pass_when": True},
+            "review_status": "AI_PRE_REVIEWED"
+        }
+    ]
+
+    answers = {
+        "Q_AI_1": True,
+        "Q_AI_2": False,
+        "Q_SEED_1": True,
+        "Q_DISC_1": "Qualitative disclosure notes"
+        # Q_UNANS_1 is unanswered
+    }
+
+    profile = {"transaction_type": "VC_GROWTH_FINANCING"}
+    res = compute_readiness_score(applicable_questions, answers, profile)
+
+    st_counts = res["scored_question_review_status"]
+    assert st_counts["AI_PRE_REVIEWED"] == 2
+    assert st_counts["UNREVIEWED_SEED"] == 1
+    assert st_counts["APPROVED"] == 0
+    assert st_counts["total_scored"] == 3
+

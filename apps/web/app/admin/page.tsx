@@ -166,7 +166,7 @@ export default function AdminPage() {
       <div className="p-4 bg-surface border border-border rounded-md flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-3">
           <div className="text-xs font-mono font-medium text-ink-muted">Review Status:</div>
-          {["ALL", "APPROVED", "UNREVIEWED_SEED", "DRAFT"].map((st) => (
+          {["ALL", "APPROVED", "AI_PRE_REVIEWED", "UNREVIEWED_SEED", "DRAFT"].map((st) => (
             <button
               key={st}
               onClick={() => setSelectedStatus(st)}
@@ -278,6 +278,8 @@ export default function AdminPage() {
                       <span className={`font-mono text-[10px] font-semibold px-2 py-0.5 rounded-sm border ${
                         q.review_status === "APPROVED"
                           ? "bg-status-pass/10 text-status-pass border-status-pass/20"
+                          : q.review_status === "AI_PRE_REVIEWED"
+                          ? "bg-purple-500/10 text-purple-600 border-purple-500/20"
                           : q.review_status === "UNREVIEWED_SEED"
                           ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
                           : "bg-status-partial/10 text-status-partial border-status-partial/20"

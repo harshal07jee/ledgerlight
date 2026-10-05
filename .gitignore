@@ -55,4 +55,5 @@ data/ASP/
 *.swp
 *.swo
 .DS_Store
-Thumbs.db
+# Scratch
+scratch/

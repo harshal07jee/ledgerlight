@@ -37,3 +37,9 @@ SAAS_05_SLA_LIABILIT,SAAS_SLA_01,SOFTWARE,SLA,Enterprise SLA Unlimited Liability
 SAAS_06_API_DEPENDEN,SAAS_API_01,SOFTWARE,API,Critical Third-Party API Architecture & Fallback Grace
 SAAS_07_AI_DATA_RIGH,SAAS_AIDATA_01,SOFTWARE,AIDATA,Proprietary ML Model Training Rights on Customer Data
 SAAS_08_DISASTER_REC,SAAS_BCPDR_01,SOFTWARE,BCPDR,Disaster Recovery & Business Continuity Plans (RTO/RPO)
+SAAS_04,SAAS_SLA_01,SOFTWARE,SLA,Duplicate of SAAS_SLA_01 merged from branch bank
+SAAS_05,SAAS_AIDATA_01,SOFTWARE,AIDATA,Duplicate of SAAS_AIDATA_01 merged from branch bank
+SAAS_06,CORE_IP_03,SOFTWARE,COPYLEFT,Duplicate of CORE_IP_03 (universal core) merged from branch bank
+SAAS_COPYLEFT_01,CORE_IP_03,SOFTWARE,COPYLEFT,Duplicate of CORE_IP_03 (universal core) merged from branch bank
+SAAS_07,SAAS_BCPDR_01,SOFTWARE,BCPDR,Duplicate of SAAS_BCPDR_01 merged from branch bank
+MFG_06,MFG_09,MANUFACTURING,ISO_9001,Duplicate of MFG_09 merged from branch bank

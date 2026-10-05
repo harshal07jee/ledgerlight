@@ -468,6 +468,11 @@ export default function AssessmentWorkspacePage() {
                                 Seed Data (Unreviewed)
                               </span>
                             )}
+                            {q.review_status === "AI_PRE_REVIEWED" && (
+                              <span className="rounded bg-purple-500/10 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-purple-700 border border-purple-500/20">
+                                AI pre-reviewed, not human-verified
+                              </span>
+                            )}
                             {q.review_status === "APPROVED" && (
                               <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-emerald-700 border border-emerald-500/20">
                                 Verified

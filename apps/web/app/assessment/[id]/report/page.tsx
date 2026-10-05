@@ -84,6 +84,12 @@ interface ScoreReportData {
   trace_rows: TraceRow[];
   total_deductions: number;
   total_points_lost: number;
+  scored_question_review_status?: {
+    AI_PRE_REVIEWED: number;
+    UNREVIEWED_SEED: number;
+    APPROVED: number;
+    total_scored?: number;
+  };
   transaction_type: string;
   config_version: string;
   question_bank_version: string;
@@ -618,7 +624,7 @@ export default function ReadinessReportPage() {
             )}
 
             {/* Executive Summary Cards */}
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
               {/* Overall Score */}
               <div className="rounded-xl border border-[#E2DDD2] bg-[#FFFFFF] p-6 shadow-xs">
                 <div className="flex items-center justify-between">
@@ -726,7 +732,51 @@ export default function ReadinessReportPage() {
                   <span className="font-mono text-sm text-[#5F6470]">pts</span>
                 </div>
                 <p className="mt-2 text-[11px] text-[#5F6470]">
-                  Recoverable via remediation roadmap tasks
+                  Recoverable via remediation tasks
+                </p>
+              </div>
+
+              {/* Scored Questions Review Status Breakdown */}
+              <div className="rounded-xl border border-[#E2DDD2] bg-[#FFFFFF] p-6 shadow-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-[11px] uppercase tracking-wider text-[#5F6470]">
+                    Question Review Audit
+                  </span>
+                  <span className="rounded bg-purple-500/10 px-2 py-0.5 font-mono text-[10px] font-semibold text-purple-700">
+                    Audit Status
+                  </span>
+                </div>
+                <div className="mt-3 space-y-1.5 font-mono text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#5F6470] flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-purple-500" />
+                      AI Pre-reviewed:
+                    </span>
+                    <span className="font-bold text-[#16181D]">
+                      {report.scored_question_review_status?.AI_PRE_REVIEWED ?? 0}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#5F6470] flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-amber-500" />
+                      Unreviewed Seed:
+                    </span>
+                    <span className="font-bold text-[#16181D]">
+                      {report.scored_question_review_status?.UNREVIEWED_SEED ?? 0}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#5F6470] flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                      Human Approved:
+                    </span>
+                    <span className="font-bold text-[#16181D]">
+                      {report.scored_question_review_status?.APPROVED ?? 0}
+                    </span>
+                  </div>
+                </div>
+                <p className="mt-2 text-[10px] font-mono text-[#5F6470]">
+                  Scored questions contributing to readiness
                 </p>
               </div>
             </div>

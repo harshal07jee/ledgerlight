@@ -173,6 +173,11 @@ def seed_database(db: Session = None) -> Dict[str, Any]:
 
         for q_dict in all_q_data:
             qid = q_dict["question_id"]
+            if q_dict.get("review_status") == "APPROVED":
+                raise ValueError(
+                    f"Seed scripts must NEVER set review_status=APPROVED. "
+                    f"Question {qid} has review_status='APPROVED'. Human verification is required."
+                )
             existing = db.query(Question).filter_by(question_id=qid).first()
             if existing:
                 for k, v in q_dict.items():

@@ -72,7 +72,8 @@ def test_questions_endpoint_filters_drafts():
     assert res_normal.status_code == 200
     normal_q = res_normal.json()
     for q in normal_q:
-        assert q["review_status"] in ("APPROVED", "UNREVIEWED_SEED"), f"Draft question leaked to normal user: {q['question_id']}"
+        assert q["review_status"] in ("APPROVED", "UNREVIEWED_SEED", "AI_PRE_REVIEWED"), f"Draft question leaked to normal user: {q['question_id']}"
+        assert q["review_status"] != "DRAFT", f"Draft question leaked to normal user: {q['question_id']}"
 
     # Admin query with include_drafts=true: returns drafts as well
     res_admin = client.get("/questions?include_drafts=true")

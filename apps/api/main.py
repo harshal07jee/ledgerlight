@@ -112,6 +112,7 @@ class HealthResponse(BaseModel):
     total_questions: int
     approved_questions: int
     unreviewed_seed_questions: int = 0
+    ai_pre_reviewed_questions: int = 0
     draft_questions: int
 
 
@@ -341,11 +342,12 @@ def compute_assessment_questions(
     # 1. Fetch questions from DB
     q_query = db.query(Question)
     if not include_drafts:
-        # Show APPROVED and UNREVIEWED_SEED to users; exclude DRAFT
+        # Show APPROVED, UNREVIEWED_SEED, and AI_PRE_REVIEWED to users; exclude DRAFT
         q_query = q_query.filter(
             Question.review_status.in_([
                 ReviewStatusEnum.APPROVED.value,
-                ReviewStatusEnum.UNREVIEWED_SEED.value
+                ReviewStatusEnum.UNREVIEWED_SEED.value,
+                ReviewStatusEnum.AI_PRE_REVIEWED.value
             ])
         )
     all_q_models = q_query.order_by(Question.question_id).all()
@@ -447,9 +449,10 @@ def health_check(db: Session = Depends(get_db)):
     """System health check and question inventory count."""
     try:
         total_q = db.query(Question).count()
-        approved_q = db.query(Question).filter(Question.review_status == "APPROVED").count()
-        unreviewed_seed_q = db.query(Question).filter(Question.review_status == "UNREVIEWED_SEED").count()
-        draft_q = db.query(Question).filter(Question.review_status == "DRAFT").count()
+        approved_q = db.query(Question).filter(Question.review_status == ReviewStatusEnum.APPROVED.value).count()
+        unreviewed_seed_q = db.query(Question).filter(Question.review_status == ReviewStatusEnum.UNREVIEWED_SEED.value).count()
+        ai_pre_reviewed_q = db.query(Question).filter(Question.review_status == ReviewStatusEnum.AI_PRE_REVIEWED.value).count()
+        draft_q = db.query(Question).filter(Question.review_status == ReviewStatusEnum.DRAFT.value).count()
         return HealthResponse(
             status="ok",
             timestamp=datetime.utcnow().isoformat(),
@@ -457,6 +460,7 @@ def health_check(db: Session = Depends(get_db)):
             total_questions=total_q,
             approved_questions=approved_q,
             unreviewed_seed_questions=unreviewed_seed_q,
+            ai_pre_reviewed_questions=ai_pre_reviewed_q,
             draft_questions=draft_q
         )
     except Exception as e:
@@ -961,6 +965,7 @@ def calculate_assessment_score(
         failed_critical_items=score_result["failed_critical_items"],
         weight_origin_share=score_result.get("weight_origin_share"),
         unscored_disclosures=score_result.get("unscored_disclosures"),
+        scored_question_review_status=score_result.get("scored_question_review_status"),
         config_version=score_result["config_version"],
         question_bank_version=score_result["question_bank_version"]
     )
@@ -1068,6 +1073,7 @@ def get_assessment_trace(
         "dimension_scores": latest_run.dimension_scores,
         "weight_origin_share": latest_run.weight_origin_share or {},
         "unscored_disclosures": latest_run.unscored_disclosures or [],
+        "scored_question_review_status": latest_run.scored_question_review_status or {},
         "trace_rows": trace_rows,
         "total_deductions": len(trace_rows),
         "total_points_lost": round(sum(r["points_lost"] for r in trace_rows), 2),
@@ -1449,6 +1455,7 @@ def get_assessment_pdf_report(
         "dimension_scores": latest_run.dimension_scores or {},
         "weight_origin_share": latest_run.weight_origin_share or {},
         "unscored_disclosures": latest_run.unscored_disclosures or [],
+        "scored_question_review_status": latest_run.scored_question_review_status or {},
         "config_version": latest_run.config_version,
         "question_bank_version": latest_run.question_bank_version
     }
@@ -1490,7 +1497,8 @@ def get_public_questions(
         query = query.filter(
             Question.review_status.in_([
                 ReviewStatusEnum.APPROVED.value,
-                ReviewStatusEnum.UNREVIEWED_SEED.value
+                ReviewStatusEnum.UNREVIEWED_SEED.value,
+                ReviewStatusEnum.AI_PRE_REVIEWED.value
             ])
         )
 

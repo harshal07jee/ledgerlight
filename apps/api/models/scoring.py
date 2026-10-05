@@ -30,6 +30,7 @@ class ScoreRun(Base):
     failed_critical_items = Column(JSON, nullable=False, default=list)
     weight_origin_share = Column(JSON, nullable=True)
     unscored_disclosures = Column(JSON, nullable=True)
+    scored_question_review_status = Column(JSON, nullable=True)
     
     # Audit & Versioning (PRD 8.7)
     config_version = Column(String(50), nullable=False, default="1.0.0")

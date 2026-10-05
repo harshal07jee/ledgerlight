@@ -32,7 +32,7 @@ class Question(Base):
     source_ref = Column(String(255), nullable=True, default="")
     last_verified_on = Column(String(50), nullable=True)
     reviewer_name = Column(String(100), nullable=True)
-    review_status = Column(String(20), nullable=False, default="DRAFT")  # DRAFT, APPROVED, UNREVIEWED_SEED, DEPRECATED
+    review_status = Column(String(50), nullable=False, default="DRAFT")  # DRAFT, APPROVED, UNREVIEWED_SEED, AI_PRE_REVIEWED, DEPRECATED
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 

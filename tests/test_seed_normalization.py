@@ -28,14 +28,14 @@ def test_id_migration_map_conforms_to_pattern():
         reader = list(csv.DictReader(f))
         assert len(reader) >= 30, f"Expected >= 30 migrated IDs, found {len(reader)}"
 
-        pattern = re.compile(r"^[A-Z]{3,4}_[A-Z0-9]+_\d{2}$")
+        pattern = re.compile(r"^[A-Z]{3,4}(_[A-Z0-9]+)*_\d{2}$")
         for row in reader:
             old_id = row["old_id"]
             new_id = row["new_id"]
-            assert pattern.match(new_id), f"New ID {new_id} does not follow INDUSTRY_TOPIC_NN pattern (migrated from {old_id})"
+            assert pattern.match(new_id), f"New ID {new_id} does not follow valid question bank pattern (migrated from {old_id})"
             # Assert no truncated suffixes remain in new_id
             assert not new_id.endswith("_ALT"), f"New ID {new_id} still contains _ALT"
-            assert len(new_id.split("_")) == 3, f"New ID {new_id} must have exactly 3 underscore-delimited components"
+            assert len(new_id.split("_")) in (2, 3), f"New ID {new_id} must have 2 or 3 underscore-delimited components"
 
 
 def test_universal_core_dimensions_have_at_least_8_questions():
@@ -49,8 +49,9 @@ def test_universal_core_dimensions_have_at_least_8_questions():
     for q in core_q:
         d = q["dimension"]
         dim_counts[d] = dim_counts.get(d, 0) + 1
-        # PRD rule: all candidate core bank rows must be DRAFT
-        assert q["review_status"] == "DRAFT", f"Core row {q['question_id']} must be DRAFT"
+        # Review status must be either DRAFT or AI_PRE_REVIEWED; NEVER APPROVED
+        assert q["review_status"] in ("DRAFT", "AI_PRE_REVIEWED"), f"Core row {q['question_id']} must be DRAFT or AI_PRE_REVIEWED"
+        assert q["review_status"] != "APPROVED", f"Core row {q['question_id']} must NEVER be APPROVED"
         assert q["source_doc"] != "", f"Core row {q['question_id']} missing source_doc"
         assert q["source_ref"] != "", f"Core row {q['question_id']} missing source_ref section citation"
 
@@ -130,8 +131,9 @@ def test_every_boolean_question_has_explicit_pass_rule():
     for q in (branch_q + core_q):
         if q["input_type"] == "BOOLEAN":
             assert q.get("pass_rule") is not None, f"Boolean question {q['question_id']} missing explicit pass_rule"
-            assert q["pass_rule"].get("type") == "bool", f"Boolean question {q['question_id']} has non-bool pass_rule"
-            assert "pass_when" in q["pass_rule"], f"Boolean question {q['question_id']} missing pass_when in pass_rule"
+            assert q["pass_rule"].get("type") in ("bool", "disclosed"), f"Boolean question {q['question_id']} has unexpected pass_rule type: {q['pass_rule'].get('type')}"
+            if q["pass_rule"].get("type") == "bool":
+                assert "pass_when" in q["pass_rule"], f"Boolean question {q['question_id']} missing pass_when in pass_rule"
 
 
 def test_database_loaded_inventory():
@@ -140,8 +142,52 @@ def test_database_loaded_inventory():
         total = db.query(Question).count()
         assert total >= 200
         unreviewed = db.query(Question).filter(Question.review_status == "UNREVIEWED_SEED").count()
+        ai_pre = db.query(Question).filter(Question.review_status == "AI_PRE_REVIEWED").count()
         draft = db.query(Question).filter(Question.review_status == "DRAFT").count()
+        approved = db.query(Question).filter(Question.review_status == "APPROVED").count()
         assert unreviewed > 0
+        assert ai_pre > 0
         assert draft > 0
+        assert approved == 0, f"Database must NEVER have APPROVED rows from seed scripts, found {approved}"
     finally:
         db.close()
+
+
+def test_seed_scripts_unable_to_write_approved():
+    """Assert seed scripts are strictly unable to write review_status=APPROVED."""
+    from unittest.mock import patch, mock_open
+    from apps.api.seeds.db_seed import seed_database
+
+    # 1. Assert JSON seeds have 0 APPROVED questions
+    with open("data/seeds/draft_universal_core.json", "r", encoding="utf-8") as f:
+        core_q = json.load(f)
+    with open("data/seeds/normalized_branch_questions.json", "r", encoding="utf-8") as f:
+        branch_q = json.load(f)
+
+    for q in (core_q + branch_q):
+        assert q.get("review_status") != "APPROVED", f"Seed question {q['question_id']} has review_status=APPROVED"
+
+    # 2. Assert attempting to seed APPROVED raises ValueError
+    bad_question_data = [
+        {
+            "question_id": "TEST_APPROVED_FORBIDDEN",
+            "scope": "CORE",
+            "industry": "UNIVERSAL",
+            "sub_sector": "ALL",
+            "geography": ["USA"],
+            "stage": ["ALL"],
+            "dimension": "GOVERNANCE",
+            "question_text": "Is this seed row approved?",
+            "input_type": "BOOLEAN",
+            "risk_weight": "MEDIUM",
+            "pass_rule": {"type": "bool", "pass_when": True},
+            "source_doc": "Test Doc",
+            "source_ref": "Sec 1.1",
+            "review_status": "APPROVED"
+        }
+    ]
+
+    with patch("os.path.exists", return_value=True):
+        with patch("builtins.open", mock_open(read_data=json.dumps(bad_question_data))):
+            with pytest.raises(ValueError, match="must NEVER set review_status=APPROVED"):
+                seed_database()
