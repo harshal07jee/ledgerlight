@@ -8,7 +8,9 @@
       "Most Favored Nation": "Provider represents and warrants that the pricing, service levels, and discounts granted to Customer hereunder are no less favorable than those offered to any other customer purchasing similar volumes. In the event Provider grants more favorable terms to any third party, Provider shall immediately extend such terms to Customer",
       "Exclusivity": "Provider shall be the exclusive software supplier for Customer's enterprise compliance workflow",
       "Cap On Liability": "each party's aggregate liability arising under this Agreement shall be capped at the total fees paid by Customer in the preceding twelve (12) months"
-    }
+    },
+    "label": "SYNTHETIC_SMOKE_TEST_ONLY",
+    "description": "Synthetic test contract for fast unit testing only. NOT empirical evaluation data."
   },
   {
     "contract_id": "EDGAR_002_EMPLOYMENT_RESTRICTIVE",
@@ -19,7 +21,9 @@
       "No-Solicit Of Employees": "Executive shall not solicit or hire any employees of Company for twenty-four (24) months",
       "Change Of Control": "Upon the consummation of a Change of Control transaction, all outstanding unvested equity options held by Executive shall immediately accelerate and become 100% vested",
       "IP Ownership Assignment": "All inventions, proprietary software, and patents conceived by Executive during employment are the sole property of Company"
-    }
+    },
+    "label": "SYNTHETIC_SMOKE_TEST_ONLY",
+    "description": "Synthetic test contract for fast unit testing only. NOT empirical evaluation data."
   },
   {
     "contract_id": "EDGAR_003_CREDIT_FACILITY",
@@ -29,7 +33,9 @@
       "Change Of Control": "any Change of Control without Lender prior written consent, shall constitute an immediate Event of Default",
       "Anti-Assignment": "Borrower may not assign, transfer, or delegate any of its rights or obligations hereunder without the prior written consent of Administrative Agent",
       "Audit Rights": "Administrative Agent and its representatives shall have the right upon reasonable notice during regular business hours to examine and audit Borrower's financial records and collateral"
-    }
+    },
+    "label": "SYNTHETIC_SMOKE_TEST_ONLY",
+    "description": "Synthetic test contract for fast unit testing only. NOT empirical evaluation data."
   },
   {
     "contract_id": "EDGAR_004_POWER_PURCHASE_AGREEMENT",
@@ -39,7 +45,9 @@
       "Revenue/Profit Sharing": "Seller and Buyer shall split net revenue on a 50/50 basis",
       "Renewal Term": "The initial term shall be twenty (20) years from the Commercial Operation Date, with two successive five-year renewal options",
       "Price Adjustment": "at a fixed rate of $45.00 per MWh with an annual price adjustment of 2.0%"
-    }
+    },
+    "label": "SYNTHETIC_SMOKE_TEST_ONLY",
+    "description": "Synthetic test contract for fast unit testing only. NOT empirical evaluation data."
   },
   {
     "contract_id": "EDGAR_005_STANDARD_NDA",
@@ -47,6 +55,8 @@
     "text": "Mutual NDA: The parties agree to hold confidential information in strict confidence and use it solely for evaluating a potential transaction. Neither party grants any license under its patents or copyrights. This agreement does not create any exclusivity, partnership, or obligation to proceed with any transaction. Governing Law: This Agreement shall be governed by the laws of the State of Delaware.",
     "annotations": {
       "Governing Law": "This Agreement shall be governed by the laws of the State of Delaware"
-    }
+    },
+    "label": "SYNTHETIC_SMOKE_TEST_ONLY",
+    "description": "Synthetic test contract for fast unit testing only. NOT empirical evaluation data."
   }
 ]

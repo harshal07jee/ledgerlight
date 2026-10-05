@@ -53,30 +53,46 @@ def test_cuad_model_metadata_and_license():
 def test_all_contract_clause_questions_mapped_to_41_official_cuad_categories():
     """
     PRD 7.4 Requirement:
-    Map each CONTRACT_CLAUSE question to an official CUAD category (use only the 41 official labels).
-    Unmapped questions stay manual.
+    - Every mapped category must be in the official 41 CUAD categories (exact match).
+    - Every mapped question ID must exist in the database with evidence_type='CONTRACT_CLAUSE'.
+    - Ambiguous or non-matching questions (litigation, royalties, side letters) must NOT be mapped.
     """
+    from apps.api.database import SessionLocal
+    from apps.api.models.question import Question
+
     assert len(CUAD_41_CATEGORIES) == 41, "Must contain exactly 41 official CUAD categories"
     
     # Verify every mapped question maps to a valid category in the 41 official set
     for qid, cat in CONTRACT_QUESTION_TO_CUAD.items():
         assert cat in CUAD_41_CATEGORIES, f"Question {qid} mapped to invalid CUAD category '{cat}'"
 
-    # Verify that key corporate contract diligence questions are covered
-    assert "CORE_TXN_01" in CONTRACT_QUESTION_TO_CUAD
-    assert CONTRACT_QUESTION_TO_CUAD["CORE_TXN_01"] == "Most Favored Nation"
+    # Verify every mapped question ID exists in the database
+    db = SessionLocal()
+    try:
+        db_questions = {
+            q.question_id: q for q in db.query(Question).filter(Question.evidence_type == "CONTRACT_CLAUSE").all()
+        }
+        assert len(db_questions) == 35, f"Expected 35 CONTRACT_CLAUSE questions in DB, got {len(db_questions)}"
+        
+        for qid in CONTRACT_QUESTION_TO_CUAD.keys():
+            assert qid in db_questions, f"Mapped question {qid} does not exist in the database!"
 
-    assert "CORE_TXN_08" in CONTRACT_QUESTION_TO_CUAD
-    assert CONTRACT_QUESTION_TO_CUAD["CORE_TXN_08"] == "Change Of Control"
-
-    assert "CORE_IP_01" in CONTRACT_QUESTION_TO_CUAD
-    assert CONTRACT_QUESTION_TO_CUAD["CORE_IP_01"] == "IP Ownership Assignment"
-
-    assert "CORE_HR_08" in CONTRACT_QUESTION_TO_CUAD
-    assert CONTRACT_QUESTION_TO_CUAD["CORE_HR_08"] == "Non-Compete"
-
-    assert "CORE_FIN_08" in CONTRACT_QUESTION_TO_CUAD
-    assert CONTRACT_QUESTION_TO_CUAD["CORE_FIN_08"] == "Termination For Convenience"
+        # Specific safety exclusions: non-matching questions must NOT be mapped (must be NONE - manual)
+        # Litigation
+        assert "CORE_LEGAL_01" not in CONTRACT_QUESTION_TO_CUAD
+        # Royalties / earn-outs
+        assert "CORE_CASH_FLOW_08" not in CONTRACT_QUESTION_TO_CUAD
+        # Side letters
+        assert "CORE_TXN_01" not in CONTRACT_QUESTION_TO_CUAD
+        # Breach / default
+        assert "CORE_LEGAL_02" not in CONTRACT_QUESTION_TO_CUAD
+        # PPAs
+        assert "ENERGY_06" not in CONTRACT_QUESTION_TO_CUAD
+        assert "ENG_PHASE1_01" not in CONTRACT_QUESTION_TO_CUAD
+        # BaaS
+        assert "FIN_TECH_10" not in CONTRACT_QUESTION_TO_CUAD
+    finally:
+        db.close()
 
 
 def test_window_handling_long_documents():
@@ -130,7 +146,7 @@ def test_boundary_cases_at_exactly_85_and_50():
     - At 0.4999: MANUAL_REQUIRED.
     """
     # 1. Pure presence question at exactly 0.85 -> AUTO_FILLED
-    q_presence = "CORE_TXN_01"  # MFN side letter (pure presence)
+    q_presence = "CORE_CUST_02"  # MFN customer agreements (pure presence)
     gated_85_presence = gate_cuad_extraction(q_presence, {
         "model_score": 0.85,
         "cuad_category": "Most Favored Nation",
@@ -140,11 +156,11 @@ def test_boundary_cases_at_exactly_85_and_50():
     assert gated_85_presence["confidence"] == 0.85
 
     # 2. Compliance question at exactly 0.85 -> NEEDS_CONFIRMATION (evidence, not verdict)
-    q_compliance = "CORE_LEGAL_02"  # Violation/default under material contracts
+    q_compliance = "CORE_TXN_02"  # Change of control consent requirements (compliance/qualitative)
     gated_85_compliance = gate_cuad_extraction(q_compliance, {
         "model_score": 0.85,
-        "cuad_category": "Termination For Convenience",
-        "span_text": "Termination upon material breach"
+        "cuad_category": "Change Of Control",
+        "span_text": "Consent required for change of control"
     })
     assert gated_85_compliance["status"] == "NEEDS_CONFIRMATION"
 
@@ -182,14 +198,14 @@ def test_clause_span_is_evidence_not_verdict():
     Only pure presence questions may AUTO_FILL (and only above T_high); everything else is NEEDS_CONFIRMATION.
     """
     # Compliance question with high model score (0.96)
-    res = gate_cuad_extraction("CORE_LEGAL_02", {
+    res = gate_cuad_extraction("CORE_TXN_02", {
         "model_score": 0.96,
-        "cuad_category": "Termination For Convenience",
-        "span_text": "Either party may terminate upon 30 days notice for breach."
+        "cuad_category": "Change Of Control",
+        "span_text": "Counterparty consent required upon change of control transaction."
     })
     assert res["status"] == "NEEDS_CONFIRMATION", "Compliance clause must NEVER auto-fill"
-    assert res["answer_value"] == "Clause found: Termination For Convenience"
-    assert "terminate upon 30 days" in res["snippet"]
+    assert res["answer_value"] == "Clause found: Change Of Control"
+    assert "Counterparty consent" in res["snippet"]
 
 
 def test_score_labeling_is_model_score_not_probability():
@@ -218,7 +234,7 @@ def test_prd_12_1_structured_logging_has_zero_document_text():
     }
     log_entry = create_extraction_audit_log_entry(
         assessment_id="asmt-12345",
-        question_id="CORE_TXN_01",
+        question_id="CORE_CUST_02",
         gated_result=gated,
         user_action="accepted",
         final_value=True,
@@ -227,7 +243,7 @@ def test_prd_12_1_structured_logging_has_zero_document_text():
 
     # Required PRD 12.1 fields
     assert log_entry["assessment_id"] == "asmt-12345"
-    assert log_entry["question_id"] == "CORE_TXN_01"
+    assert log_entry["question_id"] == "CORE_CUST_02"
     assert log_entry["method"] == "CUAD_EXTRACTIVE_QA"
     assert log_entry["model_name"] == CUAD_MODEL_REPO
     assert log_entry["model_version"] == CUAD_MODEL_VERSION
