@@ -191,3 +191,50 @@ def test_seed_scripts_unable_to_write_approved():
         with patch("builtins.open", mock_open(read_data=json.dumps(bad_question_data))):
             with pytest.raises(ValueError, match="must NEVER set review_status=APPROVED"):
                 seed_database()
+
+
+def test_all_seed_files_in_data_seeds_have_zero_approved():
+    """
+    CRITICAL REQUIREMENT (Part A.4):
+    Scans every file in data/seeds/ (JSON and CSV) and asserts that
+    review_status is NEVER 'APPROVED'. Seed scripts and seed data must
+    strictly require human verification before any question is marked APPROVED.
+    """
+    import csv
+    seeds_dir = os.path.join(os.path.dirname(__file__), "..", "data", "seeds")
+    assert os.path.isdir(seeds_dir), f"Directory not found: {seeds_dir}"
+
+    seed_files = os.listdir(seeds_dir)
+    assert len(seed_files) > 0, "data/seeds/ directory must contain seed files"
+
+    for fname in seed_files:
+        fpath = os.path.join(seeds_dir, fname)
+        if not os.path.isfile(fpath):
+            continue
+
+        if fname.endswith(".json"):
+            with open(fpath, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if isinstance(data, list):
+                for idx, row in enumerate(data):
+                    if isinstance(row, dict):
+                        status = row.get("review_status")
+                        qid = row.get("question_id", f"row_{idx}")
+                        assert status != "APPROVED", (
+                            f"FORBIDDEN: File {fname} question {qid} has review_status='APPROVED'. "
+                            f"Seed data must never contain APPROVED."
+                        )
+            elif isinstance(data, dict):
+                assert data.get("review_status") != "APPROVED"
+
+        elif fname.endswith(".csv"):
+            with open(fpath, "r", encoding="utf-8", errors="ignore") as f:
+                reader = csv.DictReader(f)
+                if "review_status" in (reader.fieldnames or []):
+                    for idx, row in enumerate(reader):
+                        status = row.get("review_status", "").strip().upper()
+                        qid = row.get("question_id", f"line_{idx+2}")
+                        assert status != "APPROVED", (
+                            f"FORBIDDEN: CSV {fname} row {qid} has review_status='APPROVED'."
+                        )
+

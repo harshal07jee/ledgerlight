@@ -18,20 +18,36 @@ Under conflicting documents, the extractor must not pick a winner; it must retur
 | # | Fixture File | Type | Target Metric / Question | Ground Truth | Extractor Output | Result Classification | Status | Conf. | Safe Auto-Fill Invariant |
 |---|---|---|---|---|---|---|---|---|---|
 | **1** | `messy_financials_thousands_quarterly.xlsx` | Excel ($ in '000s) | Gross Margin (`FIN_01`) | 80.0% | 80.0% | **Success** | `AUTO_FILLED` | 1.00 | Passed (Structured table cell, normalized units) |
-| **2** | `messy_financials_thousands_quarterly.xlsx` | Excel ($ in '000s) | EBITDA Add-backs (`FIN_07`) | > 0 ($300k+ normalized) | $300,000.00 | **Success** | `AUTO_FILLED` | 1.00 | Passed (Recognized 'Normalized EBITDA Adjustments' synonym) |
+| **2** | `messy_financials_thousands_quarterly.xlsx` | Excel ($ in '000s) | EBITDA Add-backs (`FIN_07`) | $144,000 (8.0% of EBITDA, 1.37% of Rev) | $144,000.00 (8.0%) | **Success** | `AUTO_FILLED` | 1.00 | Passed (FY2025 quarterly adjustments sum to $144k; 'Normalized EBITDA Adjustments' synonym) |
 | **3** | `messy_customer_concentration.csv` | CSV (Preamble headers) | Top Customer Concentration (`REV_01`) | 17.1% | 17.1% | **Success** | `AUTO_FILLED` | 1.00 | Passed (Skipped preamble headers, matched total ARR) |
 | **4** | `messy_bank_statement.pdf` | Vector PDF (Free-text lines) | Runway & Cash Balance (`FIN_02`) | Cash: $2,250,000.00; Runway: 15.0m | Cash: $2,250,000.00; Runway: 15.0m | **Success** | `NEEDS_CONFIRMATION` | 0.70 | Passed (Rule 1: Free text regex never auto-filled) |
 | **5** | `scanned_page_soc2.pdf` | Scanned PDF (Pure raster image) | SOC 2 Type II Certification (`OPS_02`) | None (Unparsed image) | None (`[OCR unavailable...]`) | **Correctly None** | `MANUAL_REQUIRED` | 0.00 | Passed (Explicit warning on document; no silent empty text) |
 | **6** | `messy_pnl_millions.xlsx` | Excel (USD in Millions) | Gross Margin (`FIN_01`) | 80.0% | 80.0% | **Success** | `AUTO_FILLED` | 1.00 | Passed (Normalized millions multiplier, 0–100% check) |
 | **7** | `messy_two_accounts_bank_statement.pdf` | PDF (Two accounts) | Runway & Cash Balance (`FIN_02`) | Multi-account ($1.75M + $500k) | $2,250,000.00 (15.0m) | **Success** | `NEEDS_CONFIRMATION` | 0.70 | Passed (Multi-account ambiguity requires confirmation) |
-| **8** | `messy_split_customer.csv` | CSV (Split entity) | Customer Concentration (`REV_01`) | 11.4% (Single row) / 17.1% (Group) | 11.4% (Beta Corp single top) | **Success** | `AUTO_FILLED` | 1.00 | Passed (Row extraction verified; split entity requires manual group) |
+| **8** | `messy_split_customer.csv` | CSV (Split entity) | Customer Concentration (`REV_01`) | 17.1% ($1.8M Acme merged) | 17.1% (NEEDS_CONFIRMATION) | **Success** | `NEEDS_CONFIRMATION` | 0.70 | Passed (Merged split affiliate rows by normalized name; strictly required confirmation, never auto-filled 11.4% ignoring split) |
 | **9** | Conflicting Bank Statements (`doc1` vs `doc2`) | Multi-Document Text | Runway & Cash Balance (`FIN_02`) | Conflict ($1.0M vs $2.5M) | Multiple ($1.0M vs $2.5M) | **Success** | `NEEDS_CONFIRMATION` | 0.50 | Passed (Rule 4: Does not pick one; displays both sources) |
 
-**Overall Metrics:**
+**Overall Benchmark Metrics:**
 - **Success:** 8 / 9
 - **Correctly None:** 1 / 9
 - **Wrong Value:** 0 / 9
 - **Unsafe AUTO_FILLED Rate:** **0.0%** (0 false auto-fills out of 9 tests).
+
+---
+
+## 2. Measured Question Bank Extraction Safety Coverage
+
+Under PRD Section 7 and the extraction safety invariants, extraction coverage is measured honestly based on actual gating rules:
+
+| Category | Method / Evidence | Scored Question Count | Measured Share (%) | Operational Status |
+|---|---|:---:|:---:|---|
+| **Auto-Fillable** | `FINANCIAL_TABLE` (Structured cells, same period, plausible) | **14** | **9.79%** | Evaluated deterministically; auto-fills only with confidence = 1.0 |
+| **Needs Confirmation (Detectors)** | `CERTIFICATE_OR_REPORT` + `POLICY_DOC` | **44** | **30.77%** | Proposes "document found" with page evidence; user confirms |
+| **Contract Clause (CUAD M6)** | `CONTRACT_CLAUSE` (QA model extraction) | **23** | **16.08%** | Evidence span highlighted; user verifies compliance |
+| **Manual Required** | `SELF_ATTESTED` (Founder attested disclosures) | **62** | **43.36%** | Direct intake question or document upload required |
+| **Total Scored Bank** | *All active scored questions* | **143** | **100.0%** | *Disclosed (25) & Routing (8) excluded from score* |
+
+*Note: The platform no longer claims a 40.97% auto-extraction rate. Only 9.79% of questions are auto-fillable without human review, while 30.77% provide detector-assisted confirmation evidence and 59.44% require manual entry.*
 
 ---
 

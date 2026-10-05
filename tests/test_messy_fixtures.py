@@ -103,9 +103,11 @@ def test_messy_financials_thousands_quarterly():
     # Test EBITDA add-backs
     addback_res = extract_ebitda_addbacks([doc])
     assert addback_res is not None
-    # Normalized EBITDA adjustments should be identified
-    assert addback_res["answer_value"] > 0
-    # Must NOT auto-fill wrong values; if period is ambiguous or multiple quarters, must be NEEDS_CONFIRMATION
+    # Exact ground truth: FY2025 normalized adjustments sum to $144,000 across quarters
+    assert addback_res["formula_inputs"]["management_addbacks"] == 144000.0
+    assert addback_res["formula_inputs"]["ebitda"] == 1800000.0
+    assert addback_res["answer_value"] == 8.0  # 144k / 1800k reported EBITDA = 8.0% (and 1.37% of revenue)
+    # Must NOT auto-fill wrong values
     if addback_res["status"] == "AUTO_FILLED":
         assert addback_res["confidence"] == 1.0
 
@@ -205,19 +207,27 @@ def test_messy_split_customer_rows():
     """
     Fixture 7: messy_split_customer.csv
     Validates:
-    - Customer list with top customer split across regional rows (North America $1M, EMEA $800k).
-    - Single largest line item in the table is Beta Corporation at $1.2M (11.4%).
-    - Plausible range: 0.0% to 100.0%.
-    - Does NOT auto-fill wrong values.
+    - Customer list with top customer split across regional rows:
+      'Acme Global Enterprises - North America Division' ($1,000,000.00)
+      'Acme Global Enterprises - EMEA Subsidiary' ($800,000.00)
+    - Normalized name merging sums Acme to $1,800,000 (17.1% of $10.5M).
+    - If not merged, Beta Corporation at $1.2M (11.4%) would erroneously be picked.
+    - STRICT: Must NEVER AUTO_FILL a value that ignores a split.
+    - Status must be NEEDS_CONFIRMATION.
     """
     doc = load_fixture("messy_split_customer.csv")
     res = extract_customer_concentration([doc])
 
     assert res is not None
     assert 0.0 <= res["answer_value"] <= 100.0
-    assert res["answer_value"] == 11.4
-    assert res["formula_inputs"]["top_customer_revenue"] == 1200000.0
+    # True merged ground truth: $1.8M / $10.5M = 17.1%
+    assert res["answer_value"] == 17.1
+    assert res["formula_inputs"]["top_customer_revenue"] == 1800000.0
     assert res["formula_inputs"]["total_revenue"] == 10500000.0
+    # Must NEVER AUTO_FILL a value that ignores a split
+    assert res["status"] == "NEEDS_CONFIRMATION"
+    assert res["confidence"] <= 0.70
+    assert "merged from split rows" in res["snippet"]
 
 
 def test_conflicting_documents_returns_needs_confirmation():

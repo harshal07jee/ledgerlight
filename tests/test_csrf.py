@@ -116,3 +116,57 @@ def test_bearer_token_exempt_from_browser_csrf(csrf_client, csrf_user_and_cookie
     assert resp.status_code in (200, 201)
     data = resp.json()
     assert data["assessment"]["name"] == "Legit Assessment Via Bearer"
+
+
+def test_csrf_blocks_cookie_mutations_with_no_origin_and_no_referer(csrf_client, csrf_user_and_cookie):
+    """
+    CRITICAL REQUIREMENT (Part A.6):
+    A cookie-authenticated state-changing request (POST, PUT, PATCH, DELETE)
+    with NO Origin and NO Referer header must return 403 Forbidden.
+    """
+    token = csrf_user_and_cookie["token"]
+    org_id = csrf_user_and_cookie["org_id"]
+
+    cookies = {"ledgerlight_session": token}
+    # Explicitly no Origin and no Referer headers
+    empty_origin_headers = {}
+
+    # 1. POST
+    post_res = csrf_client.post(
+        f"/orgs/{org_id}/assessments",
+        json={"name": "No Origin Assessment", "industry": "SOFTWARE"},
+        cookies=cookies,
+        headers=empty_origin_headers
+    )
+    assert post_res.status_code == 403
+    assert "CSRF verification failed" in post_res.json()["detail"]
+
+    # 2. PUT
+    put_res = csrf_client.put(
+        "/assessments/dummy-asmt/answers/CORE_REV_01",
+        json={"value": 75.0},
+        cookies=cookies,
+        headers=empty_origin_headers
+    )
+    assert put_res.status_code == 403
+    assert "CSRF verification failed" in put_res.json()["detail"]
+
+    # 3. PATCH
+    patch_res = csrf_client.patch(
+        f"/orgs/{org_id}",
+        json={"name": "Patched Org Name"},
+        cookies=cookies,
+        headers=empty_origin_headers
+    )
+    assert patch_res.status_code == 403
+    assert "CSRF verification failed" in patch_res.json()["detail"]
+
+    # 4. DELETE
+    del_res = csrf_client.delete(
+        "/assessments/dummy-asmt",
+        cookies=cookies,
+        headers=empty_origin_headers
+    )
+    assert del_res.status_code == 403
+    assert "CSRF verification failed" in del_res.json()["detail"]
+

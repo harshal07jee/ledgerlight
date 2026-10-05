@@ -395,6 +395,7 @@ def test_deterministic_financial_extractions_on_synthetic_data(auth_setup):
     assert runway_res is not None
     assert runway_res["formula"] == "runway_months = cash_balance / net_monthly_burn"
     assert runway_res["formula_inputs"]["cash_balance"] == 2250000.0
+    assert runway_res["formula_inputs"]["net_monthly_burn"] == 150000.0
     assert runway_res["confidence"] <= 0.70
     assert runway_res["status"] == "NEEDS_CONFIRMATION"
     assert runway_res["answer_value"] == 15.0
@@ -610,12 +611,13 @@ def test_extraction_coverage_report(auth_setup):
         bank_cov = compute_extraction_coverage_report(all_q_dicts)
 
         assert bank_cov["total_scored_questions"] in (143, 144), bank_cov
-        print("\nBANK_COV:", bank_cov)
-        assert bank_cov["auto_extractable_count"] in (58, 59)
-        assert bank_cov["manual_required_count"] in (84, 85)
-        # Strict float verification: no rounding up to 41.0%
-        assert bank_cov["auto_extractable_pct"] < 41.0
-        assert bank_cov["auto_extractable_pct"] > 40.0
+        print("\nMEASURED BANK_COV:", bank_cov)
+        # Measured: only structured FINANCIAL_TABLE questions (14-15) can be AUTO_FILLED
+        assert bank_cov["auto_extractable_count"] in (14, 15)
+        assert bank_cov["auto_fillable_count"] in (14, 15)
+        assert 9.0 <= bank_cov["auto_extractable_pct"] <= 11.0
+        assert bank_cov["needs_confirmation_detector_count"] in (43, 44)
+        assert bank_cov["manual_required_count"] in (129, 130)
     finally:
         db.close()
 

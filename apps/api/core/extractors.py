@@ -582,8 +582,22 @@ def extract_customer_concentration(
                                     direct_label = str(row[0]).strip()
 
                 if customer_amounts and total_rev and total_rev > 0:
-                    customer_amounts.sort(key=lambda x: x[0], reverse=True)
-                    top_amount, top_name = customer_amounts[0]
+                    merged_customers: Dict[str, float] = {}
+                    customer_sources: Dict[str, List[str]] = {}
+                    for amt, raw_name in customer_amounts:
+                        # Normalize by removing division / subsidiary suffixes
+                        norm_name = raw_name.strip()
+                        for delimiter in [" - ", " / ", " (", ", "]:
+                            if delimiter in norm_name:
+                                norm_name = norm_name.split(delimiter)[0].strip()
+                        merged_customers[norm_name] = merged_customers.get(norm_name, 0.0) + amt
+                        customer_sources.setdefault(norm_name, []).append(raw_name)
+
+                    # Check if any customer was split across rows
+                    split_detected = any(len(sources) > 1 for sources in customer_sources.values())
+
+                    sorted_customers = sorted(merged_customers.items(), key=lambda x: x[1], reverse=True)
+                    top_name, top_amount = sorted_customers[0]
                     calc_pct = round((top_amount / total_rev) * 100.0, 1)
 
                     is_plausible, err_msg = check_plausibility("customer_concentration", calc_pct)
@@ -594,15 +608,27 @@ def extract_customer_concentration(
                         has_conflict=False
                     )
 
-                    snip = sanitize_snippet(
-                        f"Top Customer: '{top_name}' (${top_amount:,.2f}) | Total Revenue: ${total_rev:,.2f} | Concentration: {calc_pct}%"
-                    )
+                    # STRICT: If split detected across affiliate/division rows, require confirmation
+                    # and never AUTO_FILL a value that ignores a split.
+                    if split_detected:
+                        status = "NEEDS_CONFIRMATION"
+                        conf = min(conf, 0.70)
+                        sources_str = ", ".join(f"'{s}'" for s in customer_sources.get(top_name, [top_name]))
+                        snip = sanitize_snippet(
+                            f"Top Customer: '{top_name}' (${top_amount:,.2f} merged from split rows: {sources_str}) | Total Revenue: ${total_rev:,.2f} | Concentration: {calc_pct}%"
+                        )
+                    else:
+                        snip = sanitize_snippet(
+                            f"Top Customer: '{top_name}' (${top_amount:,.2f}) | Total Revenue: ${total_rev:,.2f} | Concentration: {calc_pct}%"
+                        )
+
                     if not is_plausible and err_msg:
                         snip = sanitize_snippet(f"Implausibility flag ({err_msg}): {snip}")
 
                     candidates.append({
                         "pct": calc_pct,
                         "top_amount": top_amount,
+                        "top_name": top_name,
                         "total_rev": total_rev,
                         "doc_name": doc.filename,
                         "page": p.page_number,
@@ -1250,9 +1276,6 @@ def compute_extraction_coverage_report(
         "SELF_ATTESTED": 0
     }
 
-    auto_extractable = 0
-    manual_required = 0
-
     for q in scored_questions:
         ev = str(q.get("evidence_type", "SELF_ATTESTED")).upper()
         if ev in by_method:
@@ -1260,21 +1283,29 @@ def compute_extraction_coverage_report(
         else:
             by_method["SELF_ATTESTED"] += 1
 
-        if ev in ("FINANCIAL_TABLE", "CERTIFICATE_OR_REPORT", "POLICY_DOC"):
-            auto_extractable += 1
-        else:
-            manual_required += 1
+    # MEASURED EXTRACTION SAFETY COVERAGE (Requirement 5):
+    # Only FINANCIAL_TABLE questions meeting structured table cell, same doc/period,
+    # and plausibility checks can ever be AUTO_FILLED.
+    # CERTIFICATE_OR_REPORT (23) and POLICY_DOC (21) are detector hits returning
+    # "document found" with NEEDS_CONFIRMATION, never AUTO_FILLED.
+    auto_fillable = by_method.get("FINANCIAL_TABLE", 0)
+    needs_confirmation_detectors = by_method.get("CERTIFICATE_OR_REPORT", 0) + by_method.get("POLICY_DOC", 0)
+    manual_required = total_scored - auto_fillable
 
-    auto_pct = (auto_extractable / total_scored * 100.0) if total_scored > 0 else 0.0
+    auto_pct = (auto_fillable / total_scored * 100.0) if total_scored > 0 else 0.0
     manual_pct = (manual_required / total_scored * 100.0) if total_scored > 0 else 0.0
 
     return {
         "total_applicable_questions": len(applicable_questions),
         "total_scored_questions": total_scored,
-        "auto_extractable_count": auto_extractable,
+        "auto_fillable_count": auto_fillable,
+        "auto_fillable_pct": auto_pct,
+        "auto_extractable_count": auto_fillable,  # Updated measured count (no longer 40.97%)
         "auto_extractable_pct": auto_pct,
+        "needs_confirmation_detector_count": needs_confirmation_detectors,
+        "needs_confirmation_detector_pct": (needs_confirmation_detectors / total_scored * 100.0) if total_scored > 0 else 0.0,
         "manual_required_count": manual_required,
         "manual_required_pct": manual_pct,
         "breakdown_by_method": by_method,
-        "cuad_model_status": "PENDING_INTEGRATION (CONTRACT_CLAUSE routed to manual in M5)"
+        "cuad_model_status": "M6_INTEGRATION_ACTIVE (CONTRACT_CLAUSE supported with confidence gating)"
     }
