@@ -60,4 +60,6 @@ scratch/
 
 # Evaluation checkpoints and logs
 scripts/*.log
-scripts/cuad_checkpoint.json
+scripts/*checkpoint*.json
+scripts/*.checkpoint.json
+

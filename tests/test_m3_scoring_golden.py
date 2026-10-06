@@ -653,3 +653,97 @@ def test_golden_scored_question_review_status_counts():
     assert st_counts["APPROVED"] == 0
     assert st_counts["total_scored"] == 3
 
+
+def test_golden_zero_risk_weight_invariants():
+    """
+    Invariant Test for ZERO risk weight (Routing & non-diligence questions):
+    Rule:
+    1. NEVER SCORED: ZERO risk weight question has severity weight 0.0.
+       Whether answered PASS or FAIL, it earns 0.0 pts and loses 0.0 pts.
+       It never produces deduction trace rows, never triggers critical caps,
+       and never impacts dimension or overall readiness score.
+    2. COMPLETENESS DENOMINATOR:
+       - If UNANSWERED: It is strictly EXCLUDED from the completeness denominator
+         (total_applicable does not increment), ensuring optional routing questions
+         never penalize diligence evidence completeness or trigger provisional flags.
+       - If ANSWERED: It counts toward answered and total applicable items.
+    """
+    applicable_questions = [
+        # 3 standard scorable questions (MEDIUM = 3 pts each)
+        {
+            "question_id": f"Q_SCORED_{i}",
+            "dimension": "GOVERNANCE",
+            "risk_weight": "MEDIUM",
+            "question_text": f"Scored Question {i}",
+            "pass_rule": {"type": "bool", "pass_when": True}
+        }
+        for i in range(1, 4)
+    ] + [
+        # 1 routing question with risk weight ZERO
+        {
+            "question_id": "Q_ROUTE_ZERO",
+            "dimension": "OPS_TECH_CYBER",
+            "risk_weight": "ZERO",
+            "input_type": "MULTIPLE_CHOICE",
+            "pass_rule": {"type": "routing"},
+            "question_text": "Company operational routing question"
+        }
+    ]
+
+    profile = {"transaction_type": "VC_GROWTH_FINANCING"}
+
+    # Case A: ZERO question is UNANSWERED, all 3 scorable questions are answered PASS
+    answers_unanswered_zero = {
+        "Q_SCORED_1": True,
+        "Q_SCORED_2": True,
+        "Q_SCORED_3": True
+        # Q_ROUTE_ZERO is omitted / unanswered
+    }
+    res_a = compute_readiness_score(applicable_questions, answers_unanswered_zero, profile)
+
+    # 1. Score is 100.0 (all 3 passed)
+    assert res_a["overall_score"] == 100.0
+    # 2. Denominator excludes unanswered ZERO question: total_applicable is 3, NOT 4!
+    assert res_a["completeness"]["total_applicable"] == 3
+    assert res_a["completeness"]["answered_count"] == 3
+    assert res_a["completeness"]["completeness_pct"] == 100.0
+    assert res_a["completeness"]["is_provisional"] is False
+    assert len(res_a["trace_rows"]) == 0
+
+    # Case B: ZERO question is ANSWERED
+    answers_answered_zero = {
+        "Q_SCORED_1": True,
+        "Q_SCORED_2": True,
+        "Q_SCORED_3": True,
+        "Q_ROUTE_ZERO": "B2B SaaS"
+    }
+    res_b = compute_readiness_score(applicable_questions, answers_answered_zero, profile)
+
+    # 1. Score remains exactly 100.0 (ZERO weight adds 0.0 pts)
+    assert res_b["overall_score"] == 100.0
+    # 2. Completeness counts answered routing question: 4 / 4 = 100.0%
+    assert res_b["completeness"]["total_applicable"] == 4
+    assert res_b["completeness"]["answered_count"] == 4
+    assert res_b["completeness"]["completeness_pct"] == 100.0
+    assert len(res_b["trace_rows"]) == 0
+
+    # Case C: ZERO question is given a "failing" boolean/choice rule to test never scored
+    zero_failing_q = [
+        {
+            "question_id": "Q_FAIL_ZERO",
+            "dimension": "GOVERNANCE",
+            "risk_weight": "ZERO",
+            "question_text": "Non-scorable question with failing answer",
+            "pass_rule": {"type": "bool", "pass_when": True}
+        }
+    ]
+    res_c = compute_readiness_score(
+        applicable_questions[:2] + zero_failing_q,
+        {"Q_SCORED_1": True, "Q_SCORED_2": True, "Q_FAIL_ZERO": False},
+        profile
+    )
+    # Both scored questions passed (score 100.0), failing ZERO question lost 0.0 pts
+    assert res_c["overall_score"] == 100.0
+    assert len(res_c["trace_rows"]) == 0
+    assert len(res_c["failed_critical_items"]) == 0
+

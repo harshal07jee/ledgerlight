@@ -151,7 +151,9 @@ def describe_expected_rule(rule: Optional[Dict[str, Any]]) -> str:
 
 
 def is_scorable_question(q: Dict[str, Any]) -> bool:
-    """Returns True if a question is subject to scoring (not routing or disclosed)."""
+    """Returns True if a question is subject to scoring (not routing, disclosed, or ZERO risk weight)."""
+    if str(q.get("risk_weight", "")).strip().upper() == "ZERO":
+        return False
     rule = q.get("pass_rule")
     if isinstance(rule, dict):
         r_type = str(rule.get("type", "")).strip().lower()
@@ -213,7 +215,7 @@ def compute_readiness_score(
     scored_unreviewed_seed_count: int = 0
     scored_approved_count: int = 0
 
-    total_applicable = len(applicable_questions)
+    total_applicable = 0
     answered_applicable = 0
 
     for q in applicable_questions:
@@ -221,6 +223,7 @@ def compute_readiness_score(
         dim = q.get("dimension", "OTHER")
         risk_weight_str = (q.get("risk_weight") or "MEDIUM").upper()
         w_q = float(severity_weights.get(risk_weight_str, 3.0))
+        is_zero_weight = (w_q == 0.0 or risk_weight_str == "ZERO")
 
         if dim not in dim_accumulators:
             dim_accumulators[dim] = {
@@ -230,7 +233,6 @@ def compute_readiness_score(
                 "total_weight_sum": 0.0,
                 "questions": []
             }
-        dim_accumulators[dim]["total_applicable"] += 1
 
         # Extract answer value and metadata
         ans_entry = answers.get(qid)
@@ -250,16 +252,26 @@ def compute_readiness_score(
         # Evaluate pass rule deterministically
         state = evaluate_pass_rule(q.get("pass_rule"), ans_val)
 
-        # UNVERIFIED and unanswered questions are excluded from score calculation,
-        # but counted in completeness, and NEVER treated as PASS.
-        if state == AnswerState.UNVERIFIED or ans_val is None or ans_val == "":
-            # Unanswered / unverified: skip from dimension score math
+        is_answered = not (state == AnswerState.UNVERIFIED or ans_val is None or ans_val == "")
+
+        # UNVERIFIED and unanswered questions are excluded from score calculation.
+        # Completeness denominator rule:
+        # Questions with risk weight ZERO (e.g. routing) are never in completeness denominators if unanswered.
+        if not is_answered:
+            if not is_zero_weight:
+                total_applicable += 1
+                dim_accumulators[dim]["total_applicable"] += 1
             continue
 
-        # Handle ROUTING and DISCLOSED questions:
-        # Never scored, never PASS/FAIL, but count toward completeness.
-        if state in (AnswerState.ROUTING, AnswerState.DISCLOSED):
+        # Question is answered
+        total_applicable += 1
+        dim_accumulators[dim]["total_applicable"] += 1
+
+        # Handle ROUTING, DISCLOSED, and ZERO risk weight questions:
+        # Never scored, never affect score or points lost, but count toward completeness when answered.
+        if state in (AnswerState.ROUTING, AnswerState.DISCLOSED) or is_zero_weight:
             answered_applicable += 1
+            dim_accumulators[dim]["answered_count"] += 1
             if state == AnswerState.DISCLOSED:
                 unscored_disclosures.append({
                     "question_id": qid,
