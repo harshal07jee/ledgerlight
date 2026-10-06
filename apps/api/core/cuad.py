@@ -120,6 +120,15 @@ def get_t_low() -> float:
 CALIBRATION_ENABLED = os.getenv("CUAD_CALIBRATION_ENABLED", "false").lower() == "true"
 CALIBRATION_TEMPERATURE = float(os.getenv("CUAD_CALIBRATION_TEMP", "1.25"))
 
+def is_cuad_autofill_enabled() -> bool:
+    """
+    Quality & Safety Invariant (Item 4):
+    Until at least 100 accepted predictions at T_high show an upper confidence bound
+    under 10% error, contract-clause questions must never be AUTO_FILLED; they are
+    NEEDS_CONFIRMATION only. Controlled via CUAD_AUTOFILL_ENABLED config (default false).
+    """
+    return os.getenv("CUAD_AUTOFILL_ENABLED", "false").lower() == "true"
+
 # Global lazy-loaded model cache
 _MODEL_CACHE: Dict[str, Any] = {}
 
@@ -189,29 +198,51 @@ def calibrate_score(raw_model_score: float, category: Optional[str] = None) -> O
 # ---------------------------------------------------------------------------
 # 5. Sliding Window Extractive QA Inference (PRD 7.4)
 # ---------------------------------------------------------------------------
-def extract_best_clause_span(
+def load_official_cuad_queries() -> Dict[str, str]:
+    """Loads official CUAD questions/prompts from data/cuad_official_queries.json."""
+    query_file = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))),
+        "data",
+        "cuad_official_queries.json"
+    )
+    if os.path.exists(query_file):
+        try:
+            import json
+            with open(query_file, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
+
+_OFFICIAL_QUERIES: Dict[str, str] = load_official_cuad_queries()
+
+
+def batched_sliding_window_extractor(
     contract_text: str,
-    cuad_category: str,
+    categories: List[str],
+    tokenizer=None,
+    model=None,
+    batch_size: int = 16,
     max_length: int = CUAD_MAX_SEQ_LENGTH,
     stride: int = CUAD_DOC_STRIDE
-) -> Dict[str, Any]:
+) -> Dict[str, Dict[str, Any]]:
     """
-    Performs extractive QA using overlapping sliding windows.
-    Compares candidate span scores against the no-answer score (CLS token).
-    Returns best span, model score (labeled 'model score', never 'probability'), and offsets.
+    Unified extractive QA sliding-window engine used in both production and evaluation.
+    Evaluates categories across full, un-truncated contract text using batched inference.
     """
-    category_norm = CUAD_CATEGORIES_SET.get(cuad_category.lower(), cuad_category)
-    query = f"Highlight the parts (if any) of this contract related to \"{category_norm}\" that should be reviewed."
-
-    tokenizer, model = load_cuad_model()
-    
-    # If model is not loaded or during fast deterministic tests, use standard windowing QA algorithm
     if tokenizer is None or model is None:
-        return _sliding_window_heuristic_extractor(contract_text, category_norm, query)
+        tok, mod = load_cuad_model()
+        if tok is None or mod is None:
+            results = {}
+            for cat in categories:
+                norm = CUAD_CATEGORIES_SET.get(cat.lower(), cat)
+                q = _OFFICIAL_QUERIES.get(norm, f'Highlight the parts (if any) of this contract related to "{norm}" that should be reviewed.')
+                results[norm] = _sliding_window_heuristic_extractor(contract_text, norm, q)
+            return results
+        tokenizer, model = tok, mod
 
     import torch
 
-    # Break contract text into overlapping sliding windows (PRD 7.4 max length 384, stride 128)
     words = contract_text.split()
     chunk_word_size = 180
     chunk_stride = 90
@@ -236,76 +267,105 @@ def extract_best_clause_span(
             if i + chunk_word_size >= len(words):
                 break
 
-    best_score = -float("inf")
-    best_span_text = ""
-    best_char_start = 0
-    best_char_end = 0
+    results = {}
 
-    for c_start, c_end, chunk_str in chunks:
-        inputs = tokenizer(
-            query,
-            chunk_str,
-            max_length=max_length,
-            truncation="only_second",
-            return_offsets_mapping=True,
-            padding="max_length",
-            return_tensors="pt"
-        )
-        offset_mapping = inputs.pop("offset_mapping")[0]
-        seq_ids = inputs.sequence_ids(0)
-        context_indices = [idx for idx, s in enumerate(seq_ids) if s == 1]
-        if not context_indices:
-            continue
+    for cat in categories:
+        norm = CUAD_CATEGORIES_SET.get(cat.lower(), cat)
+        query = _OFFICIAL_QUERIES.get(norm, f'Highlight the parts (if any) of this contract related to "{norm}" that should be reviewed.')
+        best_score = -float("inf")
+        best_span = ""
+        best_char_start = 0
+        best_char_end = 0
 
         with torch.no_grad():
-            outputs = model(**inputs)
-            start_logits = outputs.start_logits[0]
-            end_logits = outputs.end_logits[0]
+            for b_idx in range(0, len(chunks), batch_size):
+                b_chunks = chunks[b_idx:b_idx + batch_size]
+                chunk_texts = [ch[2] for ch in b_chunks]
+                inputs = tokenizer(
+                    [query] * len(b_chunks),
+                    chunk_texts,
+                    max_length=max_length,
+                    stride=stride,
+                    truncation="only_second",
+                    return_offsets_mapping=True,
+                    padding=True,
+                    return_tensors="pt"
+                )
 
-        # No-answer score is the score of the CLS token (index 0)
-        no_answer_score = (start_logits[0] + end_logits[0]).item()
+                offset_mapping = inputs.pop("offset_mapping")
+                outputs = model(**inputs)
+                start_logits = outputs.start_logits
+                end_logits = outputs.end_logits
 
-        # Find best span in this window
-        top_k = min(5, len(context_indices))
-        ctx_start_logits = {idx: start_logits[idx].item() for idx in context_indices}
-        ctx_end_logits = {idx: end_logits[idx].item() for idx in context_indices}
+                for k, (c_start, c_end, ch_str) in enumerate(b_chunks):
+                    s_log = start_logits[k]
+                    e_log = end_logits[k]
+                    offsets = offset_mapping[k]
+                    no_ans = (s_log[0] + e_log[0]).item()
 
-        sorted_starts = sorted(context_indices, key=lambda idx: ctx_start_logits[idx], reverse=True)[:top_k]
-        sorted_ends = sorted(context_indices, key=lambda idx: ctx_end_logits[idx], reverse=True)[:top_k]
+                    seq_ids = inputs.sequence_ids(k)
+                    ctx_indices = [idx for idx, sid in enumerate(seq_ids) if sid == 1]
+                    if not ctx_indices:
+                        continue
 
-        for s_idx in sorted_starts:
-            for e_idx in sorted_ends:
-                if s_idx <= e_idx and (e_idx - s_idx) < 60:
-                    span_score = ctx_start_logits[s_idx] + ctx_end_logits[e_idx]
-                    margin = span_score - no_answer_score
+                    top_s = sorted(ctx_indices, key=lambda idx: s_log[idx].item(), reverse=True)[:5]
+                    top_e = sorted(ctx_indices, key=lambda idx: e_log[idx].item(), reverse=True)[:5]
 
-                    if margin > best_score:
-                        char_s = offset_mapping[s_idx][0].item()
-                        char_e = offset_mapping[e_idx][1].item()
-                        span_text = chunk_str[char_s:char_e].strip()
-                        if len(span_text) > 5:
-                            best_score = margin
-                            best_span_text = span_text
-                            best_char_start = c_start + char_s
-                            best_char_end = c_start + char_e
+                    for s_pos in top_s:
+                        for e_pos in top_e:
+                            if s_pos <= e_pos and (e_pos - s_pos) < 60:
+                                span_score = s_log[s_pos].item() + e_log[e_pos].item()
+                                margin = span_score - no_ans
+                                if margin > best_score:
+                                    cs = offsets[s_pos][0].item()
+                                    ce = offsets[e_pos][1].item()
+                                    sp_text = ch_str[cs:ce].strip()
+                                    if len(sp_text) > 3:
+                                        best_score = margin
+                                        best_span = sp_text
+                                        best_char_start = c_start + cs
+                                        best_char_end = c_start + ce
 
-    # Convert margin to model score in [0.0, 1.0] using sigmoid
-    if best_score > -float("inf") and len(best_span_text) > 0:
-        raw_score = 1.0 / (1.0 + math.exp(-best_score))
-        raw_score = round(raw_score, 4)
-    else:
-        raw_score = 0.0
-        best_span_text = ""
+        if best_score > -float("inf") and len(best_span) > 0:
+            score = 1.0 / (1.0 + math.exp(-best_score))
+            score = round(float(score), 4)
+        else:
+            score = 0.0
+            best_span = ""
 
-    return {
-        "clause_found": len(best_span_text) > 0 and raw_score >= get_t_low(),
-        "cuad_category": category_norm,
-        "span_text": best_span_text[:500],  # PRD 11.2 cap
-        "char_start": best_char_start,
-        "char_end": best_char_end,
-        "model_score": raw_score,  # Labeled 'model score', not 'probability'
-        "calibrated_score": calibrate_score(raw_score, category_norm)
-    }
+        results[norm] = {
+            "clause_found": len(best_span) > 0 and score >= get_t_low(),
+            "cuad_category": norm,
+            "span_text": best_span[:500],
+            "char_start": best_char_start,
+            "char_end": best_char_end,
+            "model_score": score,
+            "calibrated_score": calibrate_score(score, norm)
+        }
+
+    return results
+
+
+def extract_best_clause_span(
+    contract_text: str,
+    cuad_category: str,
+    max_length: int = CUAD_MAX_SEQ_LENGTH,
+    stride: int = CUAD_DOC_STRIDE
+) -> Dict[str, Any]:
+    """
+    Performs extractive QA using overlapping sliding windows.
+    Calls the unified batched_sliding_window_extractor.
+    """
+    category_norm = CUAD_CATEGORIES_SET.get(cuad_category.lower(), cuad_category)
+    res = batched_sliding_window_extractor(
+        contract_text=contract_text,
+        categories=[category_norm],
+        max_length=max_length,
+        stride=stride,
+        batch_size=16
+    )
+    return res[category_norm]
+
 
 
 def _sliding_window_heuristic_extractor(
@@ -374,19 +434,20 @@ def gate_cuad_extraction(
     is_pure_presence = question_id in PURE_PRESENCE_QUESTIONS
 
     if model_score >= t_high:
-        if is_pure_presence:
+        if is_pure_presence and is_cuad_autofill_enabled():
             status = "AUTO_FILLED"
             proposed_val = True
         else:
             # Compliance questions: a clause span is evidence, not a verdict.
             # User must decide compliance!
+            # Or autofill is disabled via config (CUAD_AUTOFILL_ENABLED=false).
             status = "NEEDS_CONFIRMATION"
-            proposed_val = f"Clause found: {category}"
+            proposed_val = True if is_pure_presence else f"Clause found: {category}"
         confidence = model_score
     elif model_score >= t_low:
         status = "NEEDS_CONFIRMATION"
         confidence = model_score
-        proposed_val = f"Clause found: {category}" if not is_pure_presence else True
+        proposed_val = True if is_pure_presence else f"Clause found: {category}"
     else:
         status = "MANUAL_REQUIRED"
         confidence = model_score

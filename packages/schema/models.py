@@ -35,6 +35,7 @@ class RiskWeightEnum(str, Enum):
     HIGH = "HIGH"
     MEDIUM = "MEDIUM"
     LOW = "LOW"
+    ZERO = "ZERO"
 
 
 class EvidenceTypeEnum(str, Enum):

@@ -400,42 +400,51 @@ def test_deterministic_financial_extractions_on_synthetic_data(auth_setup):
     assert runway_res["status"] == "NEEDS_CONFIRMATION"
     assert runway_res["answer_value"] == 15.0
 
-    # 2. Gross Margin: ($10.5M - $2.625M) / $10.5M = 75.0%
-    if "CORE_PERF_01" in ext_map:
-        margin_ext = ext_map["CORE_PERF_01"]
-        assert margin_ext["answer_value"] == 75.0
-        assert margin_ext["confidence"] == 1.0
-        assert margin_ext["status"] == "AUTO_FILLED"
-        assert margin_ext["formula_inputs"]["revenue"] == 10500000.0
-        assert margin_ext["formula_inputs"]["cogs"] == 2625000.0
+    # 2. Gross Margin: ((Revenue C3 $10,500,000 - COGS C4 $2,100,000) / Revenue C3 $10,500,000) * 100 = 80.0%
+    # Derived from synthetic_financial_statements.xlsx (Sheet 'Income Statement', Gross Revenue cell C3, COGS cell C4)
+    assert "CORE_CASH_FLOW_02" in ext_map
+    margin_ext = ext_map["CORE_CASH_FLOW_02"]
+    assert margin_ext["answer_value"] == 80.0
+    assert margin_ext["confidence"] == 1.0
+    assert margin_ext["status"] == "AUTO_FILLED"
+    assert margin_ext["formula_inputs"]["revenue"] == 10500000.0
+    assert margin_ext["formula_inputs"]["cogs"] == 2100000.0
 
-    # 3. Customer Concentration: $5.0M / $10.5M = 47.6% (or $1.8M / $10.5M = 17.1%)
-    if "CORE_REV_QUAL_01" in ext_map:
-        conc_ext = ext_map["CORE_REV_QUAL_01"]
-        assert conc_ext["answer_value"] in (17.1, 47.6)
-        assert conc_ext["confidence"] == 1.0
-        assert conc_ext["status"] == "AUTO_FILLED"
+    # 3. Customer Concentration: Largest customer Acme Global Enterprises ($1,800,000) / Total Revenue ($10,500,000) = 17.1%
+    # Derived from synthetic_customer_concentration.csv (Row 2 Annual Revenue 1800000 / Row 8 Total Revenue 10500000)
+    assert "CORE_REV_QUAL_01" in ext_map
+    conc_ext = ext_map["CORE_REV_QUAL_01"]
+    assert conc_ext["answer_value"] == 17.1
+    assert conc_ext["confidence"] == 1.0
+    assert conc_ext["status"] == "AUTO_FILLED"
 
-    # 4. NRR: $8.8M / $8.0M = 110.0%
-    if "SAAS_02" in ext_map:
-        nrr_ext = ext_map["SAAS_02"]
-        assert nrr_ext["answer_value"] == 110.0
-        assert nrr_ext["confidence"] == 1.0
-        assert nrr_ext["status"] == "AUTO_FILLED"
+    # 4. NRR: Ending ARR ($8,800,000) / Beginning ARR ($8,000,000) = 110.0%
+    # Derived from synthetic_nrr_schedule.csv (Row 6 Ending ARR 8800000 / Row 2 Beginning ARR 8000000)
+    assert "CORE_REV_QUAL_03" in ext_map
+    nrr_ext = ext_map["CORE_REV_QUAL_03"]
+    assert nrr_ext["answer_value"] == 110.0
+    assert nrr_ext["confidence"] == 1.0
+    assert nrr_ext["status"] == "AUTO_FILLED"
 
-    # 5. Budget Variance: ($11.0M - $10.5M) / $11.0M = 4.5%
-    if "CORE_PERF_02" in ext_map:
-        bvar_ext = ext_map["CORE_PERF_02"]
-        assert bvar_ext["answer_value"] == 4.5
-        assert bvar_ext["confidence"] == 1.0
-        assert bvar_ext["status"] == "AUTO_FILLED"
+    # 5. Budget Variance: (Budget Revenue B3 $11,500,000 - Actual Revenue C3 $10,500,000) / Budget Revenue B3 $11,500,000 = 8.7%
+    # Derived from synthetic_financial_statements.xlsx (Sheet 'Budget vs Actual', Row 3 Budget cell B3, Actual cell C3)
+    assert "CORE_FIN_PERF_01" in ext_map
+    bvar_ext = ext_map["CORE_FIN_PERF_01"]
+    assert bvar_ext["answer_value"] == 8.7
+    assert bvar_ext["confidence"] == 1.0
+    assert bvar_ext["status"] == "AUTO_FILLED"
+    assert bvar_ext["formula_inputs"]["budget_revenue"] == 11500000.0
+    assert bvar_ext["formula_inputs"]["actual_revenue"] == 10500000.0
 
-    # 6. EBITDA Add-Backs: $300,000 / $2,100,000 = 14.3%
-    if "CORE_PERF_03" in ext_map:
-        ebitda_ext = ext_map["CORE_PERF_03"]
-        assert ebitda_ext["answer_value"] == 14.3
-        assert ebitda_ext["confidence"] == 1.0
-        assert ebitda_ext["status"] == "AUTO_FILLED"
+    # 6. EBITDA Add-Backs: Management Add-backs C12 $144,000 / Reported EBITDA C11 $1,800,000 = 8.0%
+    # Derived from synthetic_financial_statements.xlsx (Sheet 'Income Statement', Add-backs cell C12, Reported EBITDA cell C11)
+    assert "CORE_FIN_PERF_02" in ext_map
+    ebitda_ext = ext_map["CORE_FIN_PERF_02"]
+    assert ebitda_ext["answer_value"] == 8.0
+    assert ebitda_ext["confidence"] == 1.0
+    assert ebitda_ext["status"] == "AUTO_FILLED"
+    assert ebitda_ext["formula_inputs"]["management_addbacks"] == 144000.0
+    assert ebitda_ext["formula_inputs"]["ebitda"] == 1800000.0
 
 
 # =========================================================================
@@ -472,23 +481,27 @@ def test_deterministic_detectors_certificate_and_policy(auth_setup):
     extractions = ext_resp.json()["extractions"]
     ext_map = {e["question_id"]: e for e in extractions}
 
-    # SOC 2 question (CORE_SEC_01)
-    if "CORE_SEC_01" in ext_map:
-        soc_ext = ext_map["CORE_SEC_01"]
-        assert soc_ext["answer_value"] == "document found"
-        assert soc_ext["status"] == "NEEDS_CONFIRMATION"
-        # CRITICAL requirement: says "document found", never "compliant"
-        assert "document found" in soc_ext["snippet"].lower()
-        assert "compliant" not in soc_ext["snippet"].lower()
+    # SOC 2 Type II audit report detector (SAAS_02)
+    # Derived from synthetic_soc2_type2_report.txt (AICPA Trust Services Criteria SOC 2 Type II)
+    assert "SAAS_02" in ext_map
+    soc_ext = ext_map["SAAS_02"]
+    assert soc_ext["answer_value"] == "document found"
+    assert soc_ext["status"] == "NEEDS_CONFIRMATION"
+    assert soc_ext["confidence"] <= 0.70
+    # CRITICAL requirement: strictly labeled "document found", never "compliant"
+    assert "document found" in soc_ext["snippet"].lower()
+    assert "compliant" not in soc_ext["snippet"].lower()
 
-    # BCP/DR question (CORE_OPS_01)
-    if "CORE_OPS_01" in ext_map:
-        bcp_ext = ext_map["CORE_OPS_01"]
-        assert bcp_ext["answer_value"] == "document found"
-        assert bcp_ext["status"] == "NEEDS_CONFIRMATION"
-        # CRITICAL requirement: says "document found", never "compliant"
-        assert "document found" in bcp_ext["snippet"].lower()
-        assert "compliant" not in bcp_ext["snippet"].lower()
+    # BCP/DR policy detector (CORE_CYBER_02)
+    # Derived from synthetic_bcp_dr_policy.docx (Business Continuity & Disaster Recovery Policy)
+    assert "CORE_CYBER_02" in ext_map
+    bcp_ext = ext_map["CORE_CYBER_02"]
+    assert bcp_ext["answer_value"] == "document found"
+    assert bcp_ext["status"] == "NEEDS_CONFIRMATION"
+    assert bcp_ext["confidence"] <= 0.70
+    # CRITICAL requirement: strictly labeled "document found", never "compliant"
+    assert "document found" in bcp_ext["snippet"].lower()
+    assert "compliant" not in bcp_ext["snippet"].lower()
 
 
 # =========================================================================

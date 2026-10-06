@@ -16,7 +16,7 @@
     "input_type": "MULTIPLE_CHOICE",
     "options": null,
     "depends_on": null,
-    "risk_weight": "CRITICAL",
+    "risk_weight": "ZERO",
     "pass_rule": {
       "type": "routing",
       "description": "Routing question: routes conditional branches; excluded from scoring."
@@ -440,7 +440,7 @@
     "input_type": "MULTIPLE_CHOICE",
     "options": null,
     "depends_on": null,
-    "risk_weight": "CRITICAL",
+    "risk_weight": "ZERO",
     "pass_rule": {
       "type": "routing",
       "description": "Routing question: routes conditional branches; excluded from scoring."
@@ -1175,7 +1175,7 @@
     "input_type": "MULTIPLE_CHOICE",
     "options": null,
     "depends_on": null,
-    "risk_weight": "CRITICAL",
+    "risk_weight": "ZERO",
     "pass_rule": {
       "type": "routing",
       "description": "Routing question: routes conditional branches; excluded from scoring."
@@ -1488,12 +1488,12 @@
     "input_type": "MULTIPLE_CHOICE",
     "options": null,
     "depends_on": null,
-    "risk_weight": "CRITICAL",
+    "risk_weight": "ZERO",
     "pass_rule": {
       "type": "routing",
       "description": "Routing question: routes conditional branches; excluded from scoring."
     },
-    "evidence_type": "CERTIFICATE_OR_REPORT",
+    "evidence_type": "SELF_ATTESTED",
     "extraction_hint": {
       "standard": "ASTM E1527",
       "doc_types": [
@@ -1928,7 +1928,7 @@
     "input_type": "MULTIPLE_CHOICE",
     "options": null,
     "depends_on": null,
-    "risk_weight": "CRITICAL",
+    "risk_weight": "ZERO",
     "pass_rule": {
       "type": "routing",
       "description": "Routing question: routes conditional branches; excluded from scoring."
@@ -2228,7 +2228,7 @@
     "input_type": "MULTIPLE_CHOICE",
     "options": null,
     "depends_on": null,
-    "risk_weight": "CRITICAL",
+    "risk_weight": "ZERO",
     "pass_rule": {
       "type": "routing",
       "description": "Routing question: routes conditional branches; excluded from scoring."
@@ -2372,7 +2372,7 @@
     "input_type": "MULTIPLE_CHOICE",
     "options": null,
     "depends_on": null,
-    "risk_weight": "CRITICAL",
+    "risk_weight": "ZERO",
     "pass_rule": {
       "type": "routing",
       "description": "Routing question: routes conditional branches; excluded from scoring."
@@ -3553,7 +3553,7 @@
     "input_type": "MULTIPLE_CHOICE",
     "options": null,
     "depends_on": null,
-    "risk_weight": "CRITICAL",
+    "risk_weight": "ZERO",
     "pass_rule": {
       "type": "routing",
       "description": "Routing question: routes conditional branches; excluded from scoring."

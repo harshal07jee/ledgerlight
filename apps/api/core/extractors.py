@@ -832,26 +832,61 @@ def extract_budget_variance(
                 actual_rev: Optional[float] = None
                 direct_shortfall: Optional[float] = None
 
-                for row in tbl:
-                    row_str = " ".join(str(c).lower() for c in row)
-                    if any(k in row_str for k in ["budget revenue", "budgeted revenue", "plan revenue", "board budget"]) and budget_rev is None:
-                        for cell in reversed(row):
-                            v = extract_financial_number(cell)
-                            if v and v > 0:
-                                budget_rev = v * tbl_multiplier
+                # 1. Column-based table header detection
+                budget_col = -1
+                actual_col = -1
+                shortfall_col = -1
+                header_row_idx = -1
+
+                for r_idx, row in enumerate(tbl[:5]):
+                    for c_idx, cell in enumerate(row):
+                        c_str = str(cell).lower().strip()
+                        if any(k in c_str for k in ["budget revenue", "budgeted revenue", "plan revenue", "board budget", "budget"]) and budget_col == -1:
+                            budget_col = c_idx
+                        if any(k in c_str for k in ["actual revenue", "actuals revenue", "actual total revenue", "actual"]) and actual_col == -1:
+                            actual_col = c_idx
+                        if any(k in c_str for k in ["variance shortfall %", "revenue shortfall %", "budget variance %", "shortfall %"]) and shortfall_col == -1:
+                            shortfall_col = c_idx
+                    if budget_col != -1 and actual_col != -1:
+                        header_row_idx = r_idx
+                        break
+
+                if header_row_idx != -1:
+                    for row in tbl[header_row_idx + 1:]:
+                        if len(row) > max(budget_col, actual_col):
+                            b_val = extract_financial_number(row[budget_col])
+                            a_val = extract_financial_number(row[actual_col])
+                            if b_val and b_val > 0 and a_val and a_val > 0:
+                                budget_rev = b_val * tbl_multiplier
+                                actual_rev = a_val * tbl_multiplier
+                                if shortfall_col != -1 and len(row) > shortfall_col and row[shortfall_col] is not None:
+                                    s_val = extract_financial_number(row[shortfall_col])
+                                    if s_val is not None and 0.0 <= s_val <= 100.0:
+                                        direct_shortfall = s_val
                                 break
-                    if any(k in row_str for k in ["actual revenue", "actuals revenue", "actual total revenue"]) and actual_rev is None:
-                        for cell in reversed(row):
-                            v = extract_financial_number(cell)
-                            if v and v > 0:
-                                actual_rev = v * tbl_multiplier
-                                break
-                    if any(k in row_str for k in ["variance shortfall %", "revenue shortfall %", "budget variance %"]):
-                        for cell in reversed(row):
-                            v = extract_financial_number(cell)
-                            if v is not None and 0.0 <= v <= 100.0:
-                                direct_shortfall = v
-                                break
+
+                # 2. Row-based fallback
+                if budget_rev is None or actual_rev is None:
+                    for row in tbl:
+                        row_str = " ".join(str(c).lower() for c in row)
+                        if any(k in row_str for k in ["budget revenue", "budgeted revenue", "plan revenue", "board budget"]) and budget_rev is None:
+                            for cell in reversed(row):
+                                v = extract_financial_number(cell)
+                                if v and v > 0:
+                                    budget_rev = v * tbl_multiplier
+                                    break
+                        if any(k in row_str for k in ["actual revenue", "actuals revenue", "actual total revenue"]) and actual_rev is None:
+                            for cell in reversed(row):
+                                v = extract_financial_number(cell)
+                                if v and v > 0:
+                                    actual_rev = v * tbl_multiplier
+                                    break
+                        if any(k in row_str for k in ["variance shortfall %", "revenue shortfall %", "budget variance %"]):
+                            for cell in reversed(row):
+                                v = extract_financial_number(cell)
+                                if v is not None and 0.0 <= v <= 100.0:
+                                    direct_shortfall = v
+                                    break
 
                 if budget_rev and actual_rev and budget_rev > 0:
                     shortfall = round(max(0.0, ((budget_rev - actual_rev) / budget_rev) * 100.0), 1)

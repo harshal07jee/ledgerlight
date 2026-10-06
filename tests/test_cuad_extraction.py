@@ -157,17 +157,32 @@ def test_no_answer_detection_on_negative_contracts():
     assert res["model_score"] < T_LOW_DEFAULT
 
 
-def test_boundary_cases_at_exactly_85_and_50():
+def test_boundary_cases_at_exactly_85_and_50(monkeypatch):
     """
-    PRD 7.5 Requirement:
+    PRD 7.5 & Quality Constraint (Item 4):
     Boundary cases at exactly 0.85 and 0.50:
-    - At 0.85: pure presence is AUTO_FILLED; compliance is NEEDS_CONFIRMATION.
+    - Under default config (CUAD_AUTOFILL_ENABLED=false):
+      Even at 0.85, contract-clause questions are strictly NEEDS_CONFIRMATION (never AUTO_FILLED).
+    - When CUAD_AUTOFILL_ENABLED=true:
+      Pure presence at 0.85 becomes AUTO_FILLED; compliance remains NEEDS_CONFIRMATION.
     - At 0.8499: strictly NEEDS_CONFIRMATION (never AUTO_FILLED).
     - At 0.50: NEEDS_CONFIRMATION.
     - At 0.4999: MANUAL_REQUIRED.
     """
-    # 1. Pure presence question at exactly 0.85 -> AUTO_FILLED
     q_presence = "CORE_CUST_02"  # MFN customer agreements (pure presence)
+    q_compliance = "CORE_TXN_02"  # Change of control consent requirements (compliance/qualitative)
+
+    # 1. Under default config (CUAD_AUTOFILL_ENABLED=false): NEVER AUTO_FILLED
+    monkeypatch.setenv("CUAD_AUTOFILL_ENABLED", "false")
+    gated_85_default = gate_cuad_extraction(q_presence, {
+        "model_score": 0.85,
+        "cuad_category": "Most Favored Nation",
+        "span_text": "Sample MFN Clause"
+    })
+    assert gated_85_default["status"] == "NEEDS_CONFIRMATION", "Must be NEEDS_CONFIRMATION when autofill disabled"
+
+    # 2. When CUAD_AUTOFILL_ENABLED=true: pure presence at 0.85 is AUTO_FILLED
+    monkeypatch.setenv("CUAD_AUTOFILL_ENABLED", "true")
     gated_85_presence = gate_cuad_extraction(q_presence, {
         "model_score": 0.85,
         "cuad_category": "Most Favored Nation",
@@ -176,8 +191,7 @@ def test_boundary_cases_at_exactly_85_and_50():
     assert gated_85_presence["status"] == "AUTO_FILLED"
     assert gated_85_presence["confidence"] == 0.85
 
-    # 2. Compliance question at exactly 0.85 -> NEEDS_CONFIRMATION (evidence, not verdict)
-    q_compliance = "CORE_TXN_02"  # Change of control consent requirements (compliance/qualitative)
+    # 3. Compliance question at exactly 0.85 -> always NEEDS_CONFIRMATION even if autofill enabled
     gated_85_compliance = gate_cuad_extraction(q_compliance, {
         "model_score": 0.85,
         "cuad_category": "Change Of Control",
@@ -185,7 +199,7 @@ def test_boundary_cases_at_exactly_85_and_50():
     })
     assert gated_85_compliance["status"] == "NEEDS_CONFIRMATION"
 
-    # 3. Just below 0.85 (0.8499) on pure presence -> strictly NEEDS_CONFIRMATION
+    # 4. Just below 0.85 (0.8499) on pure presence -> strictly NEEDS_CONFIRMATION
     gated_sub_85 = gate_cuad_extraction(q_presence, {
         "model_score": 0.8499,
         "cuad_category": "Most Favored Nation",
@@ -194,7 +208,7 @@ def test_boundary_cases_at_exactly_85_and_50():
     assert gated_sub_85["status"] == "NEEDS_CONFIRMATION"
     assert gated_sub_85["status"] != "AUTO_FILLED"
 
-    # 4. At exactly 0.50 (T_low) -> NEEDS_CONFIRMATION
+    # 5. At exactly 0.50 (T_low) -> NEEDS_CONFIRMATION
     gated_50 = gate_cuad_extraction(q_presence, {
         "model_score": 0.50,
         "cuad_category": "Most Favored Nation",
@@ -202,13 +216,49 @@ def test_boundary_cases_at_exactly_85_and_50():
     })
     assert gated_50["status"] == "NEEDS_CONFIRMATION"
 
-    # 5. Just below 0.50 (0.4999) -> MANUAL_REQUIRED
+    # 6. Just below 0.50 (0.4999) -> MANUAL_REQUIRED
     gated_sub_50 = gate_cuad_extraction(q_presence, {
         "model_score": 0.4999,
         "cuad_category": "Most Favored Nation",
         "span_text": "Sample MFN Clause"
     })
     assert gated_sub_50["status"] == "MANUAL_REQUIRED"
+
+
+def test_cuad_autofill_config_safety_rule(monkeypatch):
+    """
+    Requirement 4:
+    Until at least 100 accepted predictions at T_high show an upper confidence bound
+    under 10% error, contract-clause questions must never be AUTO_FILLED; they are
+    NEEDS_CONFIRMATION only. Implement via config (CUAD_AUTOFILL_ENABLED=false) and add a test.
+    """
+    from apps.api.core.cuad import is_cuad_autofill_enabled
+
+    # Test default setting is False
+    monkeypatch.delenv("CUAD_AUTOFILL_ENABLED", raising=False)
+    assert is_cuad_autofill_enabled() is False
+
+    high_res = {
+        "model_score": 0.95,
+        "cuad_category": "Most Favored Nation",
+        "span_text": "Contract contains Most Favored Nation pricing terms."
+    }
+
+    # With CUAD_AUTOFILL_ENABLED unset or false -> strictly NEEDS_CONFIRMATION
+    gated_disabled = gate_cuad_extraction("CORE_CUST_02", high_res)
+    assert gated_disabled["status"] == "NEEDS_CONFIRMATION"
+
+    # With CUAD_AUTOFILL_ENABLED=false explicit -> strictly NEEDS_CONFIRMATION
+    monkeypatch.setenv("CUAD_AUTOFILL_ENABLED", "false")
+    assert is_cuad_autofill_enabled() is False
+    gated_explicit_false = gate_cuad_extraction("CORE_CUST_02", high_res)
+    assert gated_explicit_false["status"] == "NEEDS_CONFIRMATION"
+
+    # Only when CUAD_AUTOFILL_ENABLED=true -> AUTO_FILLED for pure presence
+    monkeypatch.setenv("CUAD_AUTOFILL_ENABLED", "true")
+    assert is_cuad_autofill_enabled() is True
+    gated_enabled = gate_cuad_extraction("CORE_CUST_02", high_res)
+    assert gated_enabled["status"] == "AUTO_FILLED"
 
 
 def test_clause_span_is_evidence_not_verdict():

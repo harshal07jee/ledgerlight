@@ -18,7 +18,8 @@ DEFAULT_SEVERITY_WEIGHTS = {
     "CRITICAL": 8.0,
     "HIGH": 5.0,
     "MEDIUM": 3.0,
-    "LOW": 1.0
+    "LOW": 1.0,
+    "ZERO": 0.0
 }
 
 DEFAULT_PARTIAL_MULTIPLIER = 0.5
