@@ -76,23 +76,44 @@ def test_all_contract_clause_questions_mapped_to_41_official_cuad_categories():
         
         for qid in CONTRACT_QUESTION_TO_CUAD.keys():
             assert qid in db_questions, f"Mapped question {qid} does not exist in the database!"
+            assert db_questions[qid].review_status != "DRAFT", f"Draft question {qid} must NOT be mapped!"
 
-        # Specific safety exclusions: non-matching questions must NOT be mapped (must be NONE - manual)
-        # Litigation
+        # Explicit exclusions per Item 12:
+        # Draft questions must be removed
+        assert "CORE_HR_08" not in CONTRACT_QUESTION_TO_CUAD
+        assert "CORE_TXN_03" not in CONTRACT_QUESTION_TO_CUAD
+        assert "CORE_REV_QUAL_07" not in CONTRACT_QUESTION_TO_CUAD
+        # Percentage question cannot be answered by clause
+        assert "CORE_REV_QUAL_04" not in CONTRACT_QUESTION_TO_CUAD
+        # TOS AI training cannot be answered by generic license grant
+        assert "SAAS_AIDATA_01" not in CONTRACT_QUESTION_TO_CUAD
+
+        # Non-matching domain exclusions:
         assert "CORE_LEGAL_01" not in CONTRACT_QUESTION_TO_CUAD
-        # Royalties / earn-outs
         assert "CORE_CASH_FLOW_08" not in CONTRACT_QUESTION_TO_CUAD
-        # Side letters
         assert "CORE_TXN_01" not in CONTRACT_QUESTION_TO_CUAD
-        # Breach / default
         assert "CORE_LEGAL_02" not in CONTRACT_QUESTION_TO_CUAD
-        # PPAs
         assert "ENERGY_06" not in CONTRACT_QUESTION_TO_CUAD
         assert "ENG_PHASE1_01" not in CONTRACT_QUESTION_TO_CUAD
-        # BaaS
         assert "FIN_TECH_10" not in CONTRACT_QUESTION_TO_CUAD
     finally:
         db.close()
+
+
+def test_unfound_clause_never_autofills_no():
+    """
+    Item 13 Requirement:
+    Not finding a clause must NEVER auto-fill 'No'; it proposes nothing (None)
+    and leaves the question manual (MANUAL_REQUIRED).
+    """
+    for qid in CONTRACT_QUESTION_TO_CUAD.keys():
+        res = gate_cuad_extraction(qid, {
+            "model_score": 0.25,
+            "cuad_category": CONTRACT_QUESTION_TO_CUAD[qid],
+            "span_text": ""
+        })
+        assert res["status"] == "MANUAL_REQUIRED"
+        assert res["answer_value"] is None, f"Question {qid} must NOT propose 'No' on negative finding"
 
 
 def test_window_handling_long_documents():

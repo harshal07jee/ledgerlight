@@ -5,12 +5,10 @@ Account Holder: Acme Technology Holdings
 Account Number: *******4921
 Period: December 1, 2025 - December 31, 2025
 
-Beginning Cash Balance: $2,400,000.00
-Total Deposits / Receipts: $650,000.00
-Total Withdrawals / Disbursements: $800,000.00
-Net Monthly Burn: $150,000.00
 Ending Cash Balance: $2,250,000.00
 Certified Cash Balance as of December 31, 2025: $2,250,000.00
+Net Monthly Burn: $150,000.00
+Average Monthly Burn (Last 6 Months): $150,000.00
 
 Bank Officer Certification:
 I hereby certify that the ending cash balance listed above is accurate and reconciled.

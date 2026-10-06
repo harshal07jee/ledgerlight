@@ -57,3 +57,7 @@ data/ASP/
 .DS_Store
 # Scratch
 scratch/
+
+# Evaluation checkpoints and logs
+scripts/*.log
+scripts/cuad_checkpoint.json

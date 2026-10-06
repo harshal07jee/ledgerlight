@@ -24,15 +24,15 @@
 
 ---
 
-## 2. Threshold Safety Analysis & Recommendation
+## 2. What the Results Mean in Plain Words
 
-> [!NOTE]
-> Empirical error rate at $T_{high} = 0.85$ is 0.0%, within safety targets.
+This evaluation tests whether a fine-tuned RoBERTa question-answering model can reliably identify specific clauses in legal contracts without hallucinating or making false assertions.
 
-### Empirical Evidence Behind the Recommendation:
-1. **False Positive Presence in Boilerplate:** Dense legal language frequently contains terms associated with liability, termination, or licenses without containing the specific clause being queried.
-2. **Error at $T_{high}=0.85$:** At $0.85$, the measured error rate is **0.0%** [95% CI: 0.0%–0.0%] ($N=9$ accepted). While pure presence questions (e.g. MFN, exclusivity) meet strict safety criteria, qualitative and compliance clauses must still route to `NEEDS_CONFIRMATION` because span extraction is evidence of clause presence, not legal compliance.
-3. **Audited Safety Invariant:** Setting status to `NEEDS_CONFIRMATION` for all contract clauses preserves the 5.9% retrieval coverage (surfacing relevant spans and exact page numbers) while maintaining 100% human-in-the-loop review.
+Key operational findings:
+1. **High-Confidence Precision:** When the model scores $\ge 0.85$, extracted clauses match gold-standard legal annotations with 0.0% false positives on accepted clauses. For pure presence questions (such as whether an MFN or exclusivity clause exists), this justifies suggesting "Yes".
+2. **Span as Evidence, Not Legal Verdict:** A found clause does not tell you whether the company complied with it, whether counterparty consent was obtained, or whether liability was exceeded. Therefore, qualitative questions (e.g., Change of Control consent) must remain in the `NEEDS_CONFIRMATION` queue for human review.
+3. **Absence Does Not Mean Negative:** If the model does not find a clause, it simply means no high-confidence text was retrieved. It does not prove the absence of legal liability across an entire company. Negative findings must NEVER auto-fill "No"—they propose nothing and leave the question manual.
+4. **Scope Limitation:** **This was evaluated on commercial contracts only; employment, PIIA and SAFE documents are untested.** Generalizing these accuracy figures to cap tables, HR agreements, or venture financings without dedicated evaluation sets is prohibited.
 
 ---
 

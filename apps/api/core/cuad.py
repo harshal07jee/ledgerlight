@@ -84,23 +84,16 @@ CONTRACT_QUESTION_TO_CUAD: Dict[str, str] = {
     "CORE_TXN_02": "Change Of Control",
     "CORE_CUST_02": "Most Favored Nation",
     "CORE_CUST_03": "Exclusivity",
-    "CORE_REV_QUAL_04": "Renewal Term",
-    "CORE_IP_02": "Ip Ownership Assignment",
     "SAAS_SLA_01": "Uncapped Liability",
-    "SAAS_AIDATA_01": "License Grant",
-    # Draft questions (scored only if promoted)
-    "CORE_HR_08": "Non-Compete",
-    "CORE_TXN_03": "Rofr/Rofo/Rofn",
-    "CORE_REV_QUAL_07": "Price Restrictions",
 }
 
-# Questions where answering "Yes" is purely presence-based (clause exists).
-# Only pure presence questions may be AUTO_FILLED when model_score >= T_high.
+# Questions where answering "Yes" is purely presence-based (finding clause confirms presence).
+# Only pure presence questions may be AUTO_FILLED when model_score >= T_high (if error justified).
+# Not finding a clause must NEVER propose "No"; it leaves proposed_val as None (MANUAL_REQUIRED).
 PURE_PRESENCE_QUESTIONS: Set[str] = {
     "CORE_CUST_02",       # Most Favored Nation
     "CORE_CUST_03",       # Exclusivity
-    "CORE_TXN_03",       # Rofr/Rofo/Rofn
-    "CORE_REV_QUAL_07",   # Price Restrictions
+    "SAAS_SLA_01",       # Uncapped Liability
 }
 
 # ---------------------------------------------------------------------------
