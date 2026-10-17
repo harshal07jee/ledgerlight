@@ -30,6 +30,15 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Debug fixture checksum before setup
+        run: |
+          echo "Commit:"
+          git rev-parse HEAD
+          echo "Fixture checksum:"
+          sha256sum tests/fixtures/messy_data_room/messy_customer_concentration.csv
+          echo "Expected checksum:"
+          grep "messy_customer_concentration.csv" tests/fixtures/CHECKSUMS.txt
+
       - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
@@ -52,6 +61,13 @@ jobs:
           DATABASE_URL: postgresql://ledgerlight:ledgerlight_secret@localhost:5432/ledgerlight_db
         run: |
           python -m apps.api.seeds.db_seed
+
+      - name: Debug fixture checksum after seeding
+        run: |
+          echo "Fixture checksum after seeding:"
+          sha256sum tests/fixtures/messy_data_room/messy_customer_concentration.csv
+          echo "Expected checksum:"
+          grep "messy_customer_concentration.csv" tests/fixtures/CHECKSUMS.txt
 
       - name: Run Pytest against PostgreSQL Service Container
         env:
