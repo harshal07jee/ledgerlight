@@ -2,8 +2,8 @@
 Google Colab End-to-End CUAD Benchmark Evaluation Script.
 Runs on a free Colab GPU (T4 / V100 / A100) or CPU.
 
-Evaluates RoBERTa CUAD extractive QA across all 51 held-out test contracts
-for all 41 official CUAD categories (2,091 real evaluation pairs) with NO TRUNCATION.
+Evaluates RoBERTa CUAD extractive QA across held-out test contracts
+for official CUAD categories (up to 2,091 real evaluation pairs) with NO TRUNCATION.
 
 Features:
 1. Automatically installs dependencies (transformers, datasets, huggingface_hub, scikit-learn, torch).
@@ -28,8 +28,18 @@ import json
 import math
 import time
 import csv
+import argparse
 from typing import List, Dict, Any, Tuple
+from collections import Counter
 import numpy as np
+
+# Safe stdout / stderr encoding on Windows
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 
 # 1. Dependency Auto-Installation (for Google Colab)
 REQUIRED_PACKAGES = ["transformers", "huggingface_hub", "scikit-learn", "torch"]
@@ -51,9 +61,11 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-CHECKPOINT_PATH = os.path.join(os.path.dirname(__file__), "colab_cuad_checkpoint.json")
-RUN_LOG_PATH = os.path.join(os.path.dirname(__file__), "colab_cuad_run.log")
-PREDICTIONS_CSV = os.path.join(os.path.dirname(__file__), "cuad_predictions.csv")
+DEFAULT_CHECKPOINT_PATH = os.path.join(os.path.dirname(__file__), "colab_cuad_checkpoint.json")
+DEFAULT_RUN_LOG_PATH = os.path.join(os.path.dirname(__file__), "colab_cuad_run.log")
+DEFAULT_PREDICTIONS_CSV = os.path.join(os.path.dirname(__file__), "cuad_predictions.csv")
+
+RUN_LOG_PATH = DEFAULT_RUN_LOG_PATH
 
 MODEL_REPO = "Mjolnirslams/roberta-base-squad2-cuad"
 DATASET_REPO = "theatticusproject/cuad"
@@ -79,13 +91,24 @@ MAPPED_CATEGORIES = [
     "Uncapped Liability"
 ]
 
+SMOKE_5_CATEGORIES = [
+    "Change Of Control",
+    "Most Favored Nation",
+    "Exclusivity",
+    "Uncapped Liability",
+    "Anti-Assignment"
+]
+
 
 def log(msg: str):
     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
     line = f"[{timestamp}] {msg}"
     print(line, flush=True)
-    with open(RUN_LOG_PATH, "a", encoding="utf-8") as f:
-        f.write(line + "\n")
+    try:
+        with open(RUN_LOG_PATH, "a", encoding="utf-8", errors="replace") as f:
+            f.write(line + "\n")
+    except Exception:
+        pass
 
 
 def get_git_commit() -> str:
@@ -112,6 +135,8 @@ def wilson_ci(k: int, n: int, confidence: float = 0.95) -> Tuple[float, float]:
 
 def compute_token_iou(s1: str, s2: str) -> float:
     """Computes token-level Jaccard similarity between two spans."""
+    s1 = str(s1 or "")
+    s2 = str(s2 or "")
     remove_tokens = [".", ",", ";", ":", '"', "'", "(", ")", "[", "]", "{", "}"]
     for token in remove_tokens:
         s1 = s1.replace(token, " ")
@@ -201,7 +226,7 @@ def batched_extractor_gpu(
     queries_map: Dict[str, str],
     batch_size: int = 32
 ) -> Dict[str, Dict[str, Any]]:
-    """Evaluates all 41 categories across full contract text using GPU-batched sliding windows."""
+    """Evaluates requested categories across full contract text using GPU-batched sliding windows."""
     words = contract_text.split()
     chunk_word_size = 180
     chunk_stride = 90
@@ -299,8 +324,32 @@ def batched_extractor_gpu(
 
 
 def main():
+    global RUN_LOG_PATH
+
+    parser = argparse.ArgumentParser(description="Google Colab End-to-End CUAD Benchmark Evaluation Script.")
+    parser.add_argument("--smoke-test", action="store_true", help="Run quick local smoke test on 1 contract and 5 categories")
+    parser.add_argument("--contract-idx", type=int, default=None, help="Test contract index in held-out split")
+    parser.add_argument("--max-contracts", type=int, default=None, help="Limit number of contracts to evaluate")
+    parser.add_argument("--categories", nargs="+", default=None, help="Specific categories to evaluate")
+    parser.add_argument("--output-csv", type=str, default=None, help="Path to output CSV")
+    parser.add_argument("--checkpoint-file", type=str, default=None, help="Path to checkpoint JSON")
+    parser.add_argument("--log-file", type=str, default=None, help="Path to run log")
+    args = parser.parse_args()
+
+    # Determine paths and operational parameters
+    if args.smoke_test:
+        RUN_LOG_PATH = args.log_file or os.path.join(os.path.dirname(__file__), "colab_cuad_run_smoke.log")
+        checkpoint_path = args.checkpoint_file or os.path.join(os.path.dirname(__file__), "colab_cuad_checkpoint_smoke.json")
+        predictions_csv = args.output_csv or os.path.join(os.path.dirname(__file__), "cuad_predictions_smoke.csv")
+        categories_to_eval = args.categories or SMOKE_5_CATEGORIES
+    else:
+        RUN_LOG_PATH = args.log_file or DEFAULT_RUN_LOG_PATH
+        checkpoint_path = args.checkpoint_file or DEFAULT_CHECKPOINT_PATH
+        predictions_csv = args.output_csv or DEFAULT_PREDICTIONS_CSV
+        categories_to_eval = args.categories or CUAD_41_CATEGORIES
+
     log("=================================================================")
-    log("STARTING COLAB CUAD BENCHMARK EVALUATION (51 CONTRACTS, 41 CATS)")
+    log("STARTING CUAD BENCHMARK EVALUATION (LOCAL / COLAB)")
     log("=================================================================")
 
     # Log environment metadata
@@ -331,8 +380,24 @@ def main():
     n = len(contracts)
     n_train = int(n * 0.8)
     n_val = int(n * 0.1)
-    test_contracts = contracts[n_train + n_val:]
-    log(f"Loaded {n} total contracts. Held-out test split: {len(test_contracts)} contracts.")
+    all_test_contracts = contracts[n_train + n_val:]
+    log(f"Loaded {n} total contracts. Held-out test split: {len(all_test_contracts)} contracts.")
+
+    # Select target contracts
+    if args.smoke_test:
+        # Default to contract 1 (UsioInc: 3,740 words, 41 chunks) or user-specified index
+        target_idx = args.contract_idx if args.contract_idx is not None else 1
+        test_contracts = [all_test_contracts[target_idx]]
+        log(f"Smoke test mode active: evaluating 1 contract (index {target_idx}: {test_contracts[0]['title'][:40]}) x {len(categories_to_eval)} categories.")
+    elif args.contract_idx is not None:
+        test_contracts = [all_test_contracts[args.contract_idx]]
+        log(f"Evaluating 1 specified contract (index {args.contract_idx}): {test_contracts[0]['title'][:40]}.")
+    elif args.max_contracts is not None:
+        test_contracts = all_test_contracts[:args.max_contracts]
+        log(f"Evaluating {len(test_contracts)} contracts (max_contracts={args.max_contracts}).")
+    else:
+        test_contracts = all_test_contracts
+        log(f"Evaluating all {len(test_contracts)} held-out test contracts.")
 
     # Load Model & Tokenizer
     log(f"Loading extractive QA model ({MODEL_REPO}) onto {device}...")
@@ -341,9 +406,9 @@ def main():
     model.eval()
     model.to(device)
 
-    # Official queries map
+    # Official queries map from first test contract
     queries_map = {}
-    for qa in test_contracts[0]["paragraphs"][0]["qas"]:
+    for qa in all_test_contracts[0]["paragraphs"][0]["qas"]:
         q_text = qa["question"]
         if 'related to "' in q_text:
             cat = q_text.split('related to "')[1].split('"')[0]
@@ -351,22 +416,25 @@ def main():
 
     # Load checkpoint if exists
     checkpoint = {}
-    if os.path.exists(CHECKPOINT_PATH):
+    if os.path.exists(checkpoint_path):
         try:
-            with open(CHECKPOINT_PATH, "r", encoding="utf-8") as f:
+            with open(checkpoint_path, "r", encoding="utf-8") as f:
                 checkpoint = json.load(f)
             log(f"Resuming from checkpoint ({len(checkpoint)} contracts already evaluated).")
         except Exception as e:
             log(f"Warning: Could not read checkpoint: {e}")
 
-    # Evaluate test contracts
+    # Evaluate target test contracts
     total_test = len(test_contracts)
-    log(f"Beginning evaluation across {total_test} contracts x {len(CUAD_41_CATEGORIES)} categories = {total_test * len(CUAD_41_CATEGORIES)} instances (NO TRUNCATION)...")
+    log(f"Beginning evaluation across {total_test} contract(s) x {len(categories_to_eval)} categories = {total_test * len(categories_to_eval)} instances (NO TRUNCATION)...")
 
     for idx, c in enumerate(test_contracts):
         title = c["title"]
         if title in checkpoint:
-            continue
+            # Check if all requested categories are already in checkpoint
+            if all(cat in checkpoint[title] for cat in categories_to_eval):
+                log(f"[{idx+1}/{total_test}] {title[:35]} already in checkpoint; skipping.")
+                continue
 
         c_text = c["paragraphs"][0]["context"]
         c_len = len(c_text)
@@ -377,16 +445,16 @@ def main():
             model=model,
             device=device,
             contract_text=c_text,
-            categories=CUAD_41_CATEGORIES,
+            categories=categories_to_eval,
             queries_map=queries_map,
             batch_size=batch_size
         )
         elapsed = time.time() - t_start
 
-        contract_results = {}
+        contract_results = checkpoint.get(title, {})
         qas_by_cat = {qa["question"].split('related to "')[1].split('"')[0]: qa for qa in c["paragraphs"][0]["qas"] if 'related to "' in qa["question"]}
 
-        for cat in CUAD_41_CATEGORIES:
+        for cat in categories_to_eval:
             qa = qas_by_cat.get(cat)
             answers = [a["text"] for a in qa.get("answers", [])] if qa else []
             has_gt = len(answers) > 0 and (not qa.get("is_impossible", False)) if qa else False
@@ -409,15 +477,20 @@ def main():
             }
 
         checkpoint[title] = contract_results
-        with open(CHECKPOINT_PATH, "w", encoding="utf-8") as f:
-            json.dump(checkpoint, f)
+        try:
+            with open(checkpoint_path, "w", encoding="utf-8") as f:
+                json.dump(checkpoint, f)
+        except Exception as e:
+            log(f"Warning: Failed to write checkpoint: {e}")
 
         log(f"[{idx+1}/{total_test}] {title[:35]} ({c_len} chars) finished in {elapsed:.1f}s (saved to checkpoint)")
 
-    # Compile all 2,091 instances
+    # Compile all evaluation instances
     all_instances = []
     for c_title, c_cats in checkpoint.items():
         for cat, item in c_cats.items():
+            if cat not in categories_to_eval:
+                continue
             sc = float(item["score"])
             margin = float(item["margin"])
             p_span = str(item["pred_span"])
@@ -459,37 +532,39 @@ def main():
     log("✓ Real model margin check passed: all rows contain numerical margins.")
 
     # 2. Check for identical scores (>20 rows sharing identical score)
-    from collections import Counter
-    # Exclude 0.0 true negatives where no span was found above null score
     non_zero_scores = [round(x["score"], 4) for x in all_instances if x["score"] > 0.0]
     score_counts = Counter(non_zero_scores)
     duplicates = {sc: cnt for sc, cnt in score_counts.items() if cnt > 20}
     if duplicates:
         raise ValueError(f"SYNTHETIC AUDIT FAILED: Found suspicious identical non-zero scores shared across >20 rows: {duplicates}!")
-    log(f"✓ Synthetic score check passed: max identical non-zero score frequency is {max(score_counts.values()) if score_counts else 0} (<= 20 limit).")
+    max_freq = max(score_counts.values()) if score_counts else 0
+    log(f"✓ Synthetic score check passed: max identical non-zero score frequency is {max_freq} (<= 20 limit).")
 
-    # Save to cuad_predictions.csv
-    with open(PREDICTIONS_CSV, "w", newline="", encoding="utf-8") as f:
+    # Save to predictions CSV
+    with open(predictions_csv, "w", newline="", encoding="utf-8", errors="replace") as f:
         writer = csv.writer(f)
         writer.writerow(["contract", "category", "score", "margin", "predicted span", "gold span", "iou", "correct"])
         for x in all_instances:
+            # Clean newlines to maintain clean single-line CSV rows
+            p_span_clean = x["predicted_span"].replace("\r\n", " ").replace("\n", " ").replace("\r", " ")
+            g_span_clean = x["gold_span"].replace("\r\n", " ").replace("\n", " ").replace("\r", " ")
             writer.writerow([
                 x["contract"],
                 x["category"],
                 f"{x['score']:.4f}",
                 f"{x['margin']:.4f}",
-                x["predicted_span"],
-                x["gold_span"],
+                p_span_clean,
+                g_span_clean,
                 f"{x['iou']:.4f}",
                 x["correct"]
             ])
-    log(f"Wrote genuine predictions to {PREDICTIONS_CSV}")
+    log(f"Wrote genuine predictions to {predictions_csv}")
 
     # =================================================================
     # REQUIREMENT 5: Official Atticus Benchmark Metrics Calculation
     # =================================================================
     log("\n=================================================================")
-    log("OFFICIAL CUAD BENCHMARK METRICS (41 CATEGORIES, N=2,091)")
+    log(f"OFFICIAL CUAD BENCHMARK METRICS ({len(categories_to_eval)} CATEGORIES, N={len(all_instances)})")
     log("=================================================================")
 
     cat_auprs = {}
@@ -498,7 +573,7 @@ def main():
     print(f"\n{'Category':<35} | {'Gold (n)':<8} | {'Max Rec':<8} | {'Official AUPR':<14} | {'P @ 80% R':<10}")
     print("-" * 85)
 
-    for cat in CUAD_41_CATEGORIES:
+    for cat in categories_to_eval:
         c_inst = [x for x in all_instances if x["category"] == cat]
         total_gt = sum(1 for x in c_inst if x["has_gt"])
         aupr, p80, max_rec = compute_official_cuad_category_metrics(c_inst)
@@ -506,11 +581,11 @@ def main():
         cat_p80s[cat] = p80
         print(f"{cat:<35} | {total_gt:<8} | {max_rec*100:>6.1f}% | {aupr*100:>12.2f}% | {p80*100:>8.2f}%")
 
-    macro_aupr = float(np.mean(list(cat_auprs.values())))
-    macro_p80 = float(np.mean(list(cat_p80s.values())))
+    macro_aupr = float(np.mean(list(cat_auprs.values()))) if cat_auprs else 0.0
+    macro_p80 = float(np.mean(list(cat_p80s.values()))) if cat_p80s else 0.0
 
     print("-" * 85)
-    print(f"{'MACRO MEAN (All 41 Categories)':<35} | {'':<8} | {'':<8} | {macro_aupr*100:>12.2f}% | {macro_p80*100:>8.2f}%\n")
+    print(f"{'MACRO MEAN':<35} | {'':<8} | {'':<8} | {macro_aupr*100:>12.2f}% | {macro_p80*100:>8.2f}%\n")
 
     # Mapped Categories Breakdown (Requirement 5)
     print("\n=================================================================")
@@ -522,6 +597,9 @@ def main():
     for cat in MAPPED_CATEGORIES:
         c_inst = [x for x in all_instances if x["category"] == cat]
         n_c = len(c_inst)
+        if n_c == 0:
+            print(f"{cat:<22} | {'n/a (n=0)':<17} | {'n/a (n=0)':<23} | {'n/a (n=0)':<17} | {'n/a (n=0)':<23}")
+            continue
 
         # At 0.85 (T_high)
         acc_85 = [x for x in c_inst if x["score"] >= 0.85]

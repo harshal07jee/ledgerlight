@@ -62,4 +62,6 @@ scratch/
 scripts/*.log
 scripts/*checkpoint*.json
 scripts/*.checkpoint.json
+scripts/*smoke*.csv
+scripts/*smoke*.json
 

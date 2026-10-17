@@ -156,11 +156,8 @@ def is_question_applicable(
 
     # 1. Company profile gating
     scope = question.get("scope", "BRANCH")
-    raw_prof = (company_profile.get("industry") or "").upper()
-    raw_q_ind = (question.get("industry") or "").upper()
-    INDUSTRY_ALIASES = {"SAAS": "SOFTWARE"}
-    prof_industry = INDUSTRY_ALIASES.get(raw_prof, raw_prof)
-    q_industry = INDUSTRY_ALIASES.get(raw_q_ind, raw_q_ind)
+    prof_industry = (company_profile.get("industry") or "").upper()
+    q_industry = (question.get("industry") or "").upper()
 
     if scope == "BRANCH":
         if q_industry not in ("UNIVERSAL", "ALL", "") and q_industry != prof_industry:

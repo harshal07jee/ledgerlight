@@ -63,7 +63,7 @@ def auth_setup():
             asmt_a = Assessment(
                 org_id=org_a.id,
                 name="M5 Assessment A",
-                industry="SAAS",
+                industry="SOFTWARE",
                 sub_sector="B2B_ENTERPRISE",
                 stage="Growth",
                 transaction_type="VC_GROWTH_FINANCING"
@@ -93,7 +93,7 @@ def auth_setup():
             asmt_b = Assessment(
                 org_id=org_b.id,
                 name="M5 Assessment B",
-                industry="SAAS",
+                industry="SOFTWARE",
                 sub_sector="B2B_ENTERPRISE",
                 stage="Growth",
                 transaction_type="VC_GROWTH_FINANCING"
