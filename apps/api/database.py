@@ -3,12 +3,14 @@ Database configuration and session management (SQLAlchemy 2.0).
 Supports PostgreSQL and SQLite (for fast local development and unit testing).
 """
 import os
+# pyrefly: ignore [missing-import]
 from sqlalchemy import create_engine
+# pyrefly: ignore [missing-import]
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql://ledgerlight:ledgerlight_secret@localhost:5432/ledgerlight_db"
+    "postgresql+psycopg2://ledgerlight:ledgerlight_secret@localhost:5432/ledgerlight_db"
 )
 
 # SQLite needs check_same_thread=False
