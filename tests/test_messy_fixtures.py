@@ -19,7 +19,8 @@ STRICT SAFETY INVARIANTS:
 - Conflicting documents return NEEDS_CONFIRMATION showing both values and sources.
 """
 import os
-import pytest
+import sys
+
 from apps.api.core.ingest import parse_document
 from apps.api.core.extractors import (
     extract_cash_runway,
@@ -138,7 +139,7 @@ def test_messy_customer_concentration():
     assert res["formula_inputs"]["total_revenue"] == 10500000.0
 
 
-def test_scanned_page_soc2_explicit_ocr_warning():
+def test_scanned_page_soc2_explicit_ocr_warning(monkeypatch):
     """
     Fixture 4: scanned_page_soc2.pdf
     Validates:
@@ -146,6 +147,7 @@ def test_scanned_page_soc2_explicit_ocr_warning():
     - Does NOT produce silent empty text.
     - No wrong values are extracted or AUTO_FILLED.
     """
+    monkeypatch.setitem(sys.modules, "pytesseract", None)
     doc = load_fixture("scanned_page_soc2.pdf")
     assert doc.page_count == 1
     page = doc.pages[0]
