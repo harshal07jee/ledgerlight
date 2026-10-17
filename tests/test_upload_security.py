@@ -12,6 +12,8 @@ Tests:
 7. Answer origin & score integration: confirmed and auto enter score, needs_confirmation excluded until confirmed.
 8. Coverage report: honest 40.97% auto vs 59.03% manual without rounding up.
 """
+from apps.api.core.extractors import extract_cash_runway
+from apps.api.core.ingest import parse_document
 import io
 import os
 import zipfile
@@ -385,9 +387,10 @@ def test_deterministic_financial_extractions_on_synthetic_data(auth_setup):
     extractions = ext_resp.json()["extractions"]
     ext_map = {e["question_id"]: e for e in extractions}
 
+    print("Saved extraction count:", len(extractions))
+    print("Extraction IDs:", sorted(ext_map.keys()))
+
     # 1. Runway formula and extractor verification on synthetic bank statement
-    from apps.api.core.extractors import extract_cash_runway
-    from apps.api.core.ingest import parse_document
     bank_path = os.path.join(fixtures_dir, "synthetic_bank_statement.txt")
     with open(bank_path, "rb") as f:
         parsed_bank = parse_document("synthetic_bank_statement.txt", f.read())
@@ -645,3 +648,5 @@ def test_extraction_coverage_report(auth_setup):
     assert cov["total_scored_questions"] > 0
     assert cov["auto_extractable_count"] + cov["manual_required_count"] == cov["total_scored_questions"]
     assert abs((cov["auto_extractable_pct"] + cov["manual_required_pct"]) - 100.0) < 0.01
+
+
