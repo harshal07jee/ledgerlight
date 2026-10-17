@@ -11,15 +11,15 @@ Features:
 3. Checkpoints progress per contract to `colab_cuad_checkpoint.json`.
 4. Enforces strict anti-synthetic validation (Requirement 4):
    - Every row must have a real model margin.
-   - Fails immediately if more than 20 rows share an identical non-zero score.
+   - Fails immediately if more than 20 rows share an identical non-zero score or span_prob.
+   - Verifies no contract was truncated across all sliding windows.
 5. Writes `cuad_predictions.csv` with exact columns:
-   contract, category, score, margin, predicted span, gold span, iou, correct
+   contract, category, n_windows, score, margin, span_prob, predicted span, gold span, iou, correct
 6. Writes comprehensive run log to `colab_cuad_run.log`.
 7. Computes official Atticus CUAD metrics (Requirement 5):
-   - Per-category AUPR for all 41 categories via official evaluate.py logic
-   - Macro mean AUPR
-   - Precision at 80% Recall (P @ 80% R)
-   - Coverage and error rate at 0.85 and 0.50 with exact Wilson score intervals and n for mapped categories.
+   - Per-category AUPR ranking by margin-based score AND by span_prob side by side
+   - Macro mean AUPR and Precision at 80% Recall for both rankings
+   - Mapped categories evaluation (both rankings + coverage & error rate at 0.85 and 0.50)
 """
 import os
 import sys
@@ -160,7 +160,10 @@ def process_precisions(precision: List[float]) -> List[float]:
     return precision_best[::-1]
 
 
-def compute_official_cuad_category_metrics(instances_for_cat: List[Dict[str, Any]]) -> Tuple[float, float, float]:
+def compute_official_cuad_category_metrics(
+    instances_for_cat: List[Dict[str, Any]],
+    score_key: str = "score"
+) -> Tuple[float, float, float]:
     """Computes AUPR and Precision at 80% Recall for a single category via official Atticus evaluate.py logic."""
     total_pos = sum(1 for x in instances_for_cat if x["has_gt"] and x["gold_span"])
     if total_pos == 0:
@@ -178,7 +181,7 @@ def compute_official_cuad_category_metrics(instances_for_cat: List[Dict[str, Any
             has_gt = it["has_gt"]
             gold = it["gold_span"]
             pred = it["predicted_span"]
-            score = it["score"]
+            score = it.get(score_key, 0.0)
             pred_kept = pred if score > conf else ""
 
             if not has_gt or not gold:
@@ -251,11 +254,17 @@ def batched_extractor_gpu(
             if i + chunk_word_size >= len(words):
                 break
 
+    # Verify no contract was truncated across sliding windows
+    if chunks and chunks[-1][1] < len(contract_text) - 20:
+        raise ValueError(f"TRUNCATION DETECTED: Contract text has length {len(contract_text)}, but sliding windows ended at {chunks[-1][1]}!")
+
     results = {}
     for cat in categories:
         query = queries_map.get(cat, f'Highlight the parts (if any) of this contract related to "{cat}" that should be reviewed.')
         best_score = -float("inf")
         best_span = ""
+        min_null_score = float("inf")
+        candidate_predictions = []
 
         with torch.no_grad():
             for b_idx in range(0, len(chunks), batch_size):
@@ -283,6 +292,8 @@ def batched_extractor_gpu(
                     e_log = end_logits[k]
                     offsets = offset_mapping[k]
                     no_ans = (s_log[0] + e_log[0]).item()
+                    if no_ans < min_null_score:
+                        min_null_score = no_ans
 
                     seq_ids = inputs.sequence_ids(k)
                     ctx_indices = [idx for idx, sid in enumerate(seq_ids) if sid == 1]
@@ -297,13 +308,45 @@ def batched_extractor_gpu(
                             if s_pos <= e_pos and (e_pos - s_pos) < 60:
                                 span_score = s_log[s_pos].item() + e_log[e_pos].item()
                                 margin = span_score - no_ans
-                                if margin > best_score:
-                                    cs = offsets[s_pos][0].item()
-                                    ce = offsets[e_pos][1].item()
-                                    sp_text = ch_str[cs:ce].strip()
-                                    if len(sp_text) > 3:
+                                cs = offsets[s_pos][0].item()
+                                ce = offsets[e_pos][1].item()
+                                sp_text = ch_str[cs:ce].strip()
+                                if len(sp_text) > 3:
+                                    candidate_predictions.append({
+                                        "score": span_score,
+                                        "text": sp_text,
+                                        "margin": margin,
+                                    })
+                                    if margin > best_score:
                                         best_score = margin
                                         best_span = sp_text
+
+        # HuggingFace SQuAD post-processing: softmax over n-best candidates taking the best non-null candidate
+        seen_texts = set()
+        nbest_non_null = []
+        for cand in sorted(candidate_predictions, key=lambda x: x["score"], reverse=True):
+            if cand["text"] not in seen_texts:
+                seen_texts.add(cand["text"])
+                nbest_non_null.append(cand)
+                if len(nbest_non_null) >= 20:
+                    break
+
+        if nbest_non_null and min_null_score < float("inf"):
+            total_scores = [c["score"] for c in nbest_non_null] + [min_null_score]
+            max_s = max(total_scores)
+            exps = [math.exp(s - max_s) for s in total_scores]
+            sum_exps = sum(exps)
+            probs = [e / sum_exps for e in exps] if sum_exps > 0 else [0.0] * len(total_scores)
+            span_prob = round(float(probs[0]), 4)
+        elif nbest_non_null:
+            total_scores = [c["score"] for c in nbest_non_null]
+            max_s = max(total_scores)
+            exps = [math.exp(s - max_s) for s in total_scores]
+            sum_exps = sum(exps)
+            probs = [e / sum_exps for e in exps] if sum_exps > 0 else [0.0] * len(total_scores)
+            span_prob = round(float(probs[0]), 4)
+        else:
+            span_prob = 0.0
 
         if best_score > -float("inf") and len(best_span) > 0:
             score = 1.0 / (1.0 + math.exp(-best_score))
@@ -317,6 +360,8 @@ def batched_extractor_gpu(
         results[cat] = {
             "score": score,
             "margin": raw_margin,
+            "span_prob": span_prob,
+            "n_windows": len(chunks),
             "pred_span": best_span[:500],
         }
 
@@ -385,7 +430,6 @@ def main():
 
     # Select target contracts
     if args.smoke_test:
-        # Default to contract 1 (UsioInc: 3,740 words, 41 chunks) or user-specified index
         target_idx = args.contract_idx if args.contract_idx is not None else 1
         test_contracts = [all_test_contracts[target_idx]]
         log(f"Smoke test mode active: evaluating 1 contract (index {target_idx}: {test_contracts[0]['title'][:40]}) x {len(categories_to_eval)} categories.")
@@ -463,6 +507,8 @@ def main():
             p_item = preds.get(cat, {})
             sc = p_item.get("score", 0.0)
             margin = p_item.get("margin", -999.0)
+            span_prob = p_item.get("span_prob", 0.0)
+            n_windows = p_item.get("n_windows", 0)
             p_span = p_item.get("pred_span", "")
 
             max_iou = max([compute_token_iou(g, p_span) for g in answers]) if has_gt else 0.0
@@ -470,6 +516,8 @@ def main():
             contract_results[cat] = {
                 "score": sc,
                 "margin": margin,
+                "span_prob": span_prob,
+                "n_windows": n_windows,
                 "pred_span": p_span,
                 "has_gt": has_gt,
                 "gold_span": primary_gold,
@@ -483,7 +531,7 @@ def main():
         except Exception as e:
             log(f"Warning: Failed to write checkpoint: {e}")
 
-        log(f"[{idx+1}/{total_test}] {title[:35]} ({c_len} chars) finished in {elapsed:.1f}s (saved to checkpoint)")
+        log(f"[{idx+1}/{total_test}] {title[:35]} ({c_len} chars, {contract_results[categories_to_eval[0]]['n_windows']} windows) finished in {elapsed:.1f}s (saved to checkpoint)")
 
     # Compile all evaluation instances
     all_instances = []
@@ -493,6 +541,8 @@ def main():
                 continue
             sc = float(item["score"])
             margin = float(item["margin"])
+            span_prob = float(item.get("span_prob", 0.0))
+            n_windows = int(item.get("n_windows", 0))
             p_span = str(item["pred_span"])
             g_span = str(item["gold_span"])
             has_gt = bool(item["has_gt"])
@@ -509,8 +559,10 @@ def main():
             all_instances.append({
                 "contract": c_title,
                 "category": cat,
+                "n_windows": n_windows,
                 "score": sc,
                 "margin": margin,
+                "span_prob": span_prob,
                 "predicted_span": p_span,
                 "gold_span": g_span,
                 "iou": iou,
@@ -521,9 +573,9 @@ def main():
     log(f"\nTotal compiled evaluation instances: {len(all_instances)}")
 
     # =================================================================
-    # REQUIREMENT 4: Anti-Synthetic Score & Margin Checks
+    # REQUIREMENT 4: Anti-Synthetic & No-Truncation Verification Checks
     # =================================================================
-    log("Running Requirement 4 Anti-Synthetic Verification Checks...")
+    log("Running Requirement 4 Anti-Synthetic and No-Truncation Verification Checks...")
 
     # 1. Check that every row has a real model margin
     missing_margin = sum(1 for x in all_instances if "margin" not in x or x["margin"] is None or math.isnan(x["margin"]))
@@ -540,19 +592,37 @@ def main():
     max_freq = max(score_counts.values()) if score_counts else 0
     log(f"✓ Synthetic score check passed: max identical non-zero score frequency is {max_freq} (<= 20 limit).")
 
+    # 3. Check for identical span_prob (>20 rows sharing identical span_prob)
+    non_zero_probs = [round(x["span_prob"], 4) for x in all_instances if x["span_prob"] > 0.0]
+    prob_counts = Counter(non_zero_probs)
+    duplicates_prob = {sc: cnt for sc, cnt in prob_counts.items() if cnt > 20}
+    if duplicates_prob:
+        raise ValueError(f"SYNTHETIC AUDIT FAILED: Found suspicious identical non-zero span_prob shared across >20 rows: {duplicates_prob}!")
+    max_prob_freq = max(prob_counts.values()) if prob_counts else 0
+    log(f"✓ Synthetic span_prob check passed: max identical non-zero span_prob frequency is {max_prob_freq} (<= 20 limit).")
+
+    # 4. Check that no contract was truncated
+    zero_windows = [x for x in all_instances if x["n_windows"] <= 0]
+    if zero_windows:
+        raise ValueError(f"TRUNCATION AUDIT FAILED: {len(zero_windows)} rows have n_windows <= 0!")
+    min_windows = min(x["n_windows"] for x in all_instances)
+    max_windows = max(x["n_windows"] for x in all_instances)
+    log(f"✓ No-truncation audit passed: all contracts scanned 100% of text without truncation (windows range: {min_windows} to {max_windows}).")
+
     # Save to predictions CSV
     with open(predictions_csv, "w", newline="", encoding="utf-8", errors="replace") as f:
         writer = csv.writer(f)
-        writer.writerow(["contract", "category", "score", "margin", "predicted span", "gold span", "iou", "correct"])
+        writer.writerow(["contract", "category", "n_windows", "score", "margin", "span_prob", "predicted span", "gold span", "iou", "correct"])
         for x in all_instances:
-            # Clean newlines to maintain clean single-line CSV rows
             p_span_clean = x["predicted_span"].replace("\r\n", " ").replace("\n", " ").replace("\r", " ")
             g_span_clean = x["gold_span"].replace("\r\n", " ").replace("\n", " ").replace("\r", " ")
             writer.writerow([
                 x["contract"],
                 x["category"],
+                x["n_windows"],
                 f"{x['score']:.4f}",
                 f"{x['margin']:.4f}",
+                f"{x['span_prob']:.4f}",
                 p_span_clean,
                 g_span_clean,
                 f"{x['iou']:.4f}",
@@ -562,32 +632,67 @@ def main():
 
     # =================================================================
     # REQUIREMENT 5: Official Atticus Benchmark Metrics Calculation
+    # (Side-by-side comparison: Margin-based ranking vs Span_prob ranking)
     # =================================================================
     log("\n=================================================================")
     log(f"OFFICIAL CUAD BENCHMARK METRICS ({len(categories_to_eval)} CATEGORIES, N={len(all_instances)})")
     log("=================================================================")
 
-    cat_auprs = {}
-    cat_p80s = {}
+    margin_auprs = {}
+    margin_p80s = {}
+    prob_auprs = {}
+    prob_p80s = {}
 
-    print(f"\n{'Category':<35} | {'Gold (n)':<8} | {'Max Rec':<8} | {'Official AUPR':<14} | {'P @ 80% R':<10}")
-    print("-" * 85)
+    print(f"\n{'Category':<32} | {'Gold (n)':<8} | {'Max Rec':<8} | {'Margin AUPR':<12} | {'SpanProb AUPR':<14} | {'Margin P@80%':<12} | {'SpanProb P@80%':<14}")
+    print("-" * 115)
 
     for cat in categories_to_eval:
         c_inst = [x for x in all_instances if x["category"] == cat]
         total_gt = sum(1 for x in c_inst if x["has_gt"])
-        aupr, p80, max_rec = compute_official_cuad_category_metrics(c_inst)
-        cat_auprs[cat] = aupr
-        cat_p80s[cat] = p80
-        print(f"{cat:<35} | {total_gt:<8} | {max_rec*100:>6.1f}% | {aupr*100:>12.2f}% | {p80*100:>8.2f}%")
+        aupr_m, p80_m, max_rec = compute_official_cuad_category_metrics(c_inst, score_key="score")
+        aupr_p, p80_p, _ = compute_official_cuad_category_metrics(c_inst, score_key="span_prob")
 
-    macro_aupr = float(np.mean(list(cat_auprs.values()))) if cat_auprs else 0.0
-    macro_p80 = float(np.mean(list(cat_p80s.values()))) if cat_p80s else 0.0
+        margin_auprs[cat] = aupr_m
+        margin_p80s[cat] = p80_m
+        prob_auprs[cat] = aupr_p
+        prob_p80s[cat] = p80_p
 
-    print("-" * 85)
-    print(f"{'MACRO MEAN':<35} | {'':<8} | {'':<8} | {macro_aupr*100:>12.2f}% | {macro_p80*100:>8.2f}%\n")
+        print(f"{cat:<32} | {total_gt:<8} | {max_rec*100:>6.1f}% | {aupr_m*100:>10.2f}% | {aupr_p*100:>12.2f}% | {p80_m*100:>10.2f}% | {p80_p*100:>12.2f}%")
 
-    # Mapped Categories Breakdown (Requirement 5)
+    macro_m_aupr = float(np.mean(list(margin_auprs.values()))) if margin_auprs else 0.0
+    macro_m_p80 = float(np.mean(list(margin_p80s.values()))) if margin_p80s else 0.0
+    macro_p_aupr = float(np.mean(list(prob_auprs.values()))) if prob_auprs else 0.0
+    macro_p_p80 = float(np.mean(list(prob_p80s.values()))) if prob_p80s else 0.0
+
+    print("-" * 115)
+    print(f"{'MACRO MEAN':<32} | {'':<8} | {'':<8} | {macro_m_aupr*100:>10.2f}% | {macro_p_aupr*100:>12.2f}% | {macro_m_p80*100:>10.2f}% | {macro_p_p80*100:>12.2f}%\n")
+
+    # Mapped Categories Breakdown Side-by-Side
+    print("\n=================================================================")
+    print("MAPPED CATEGORIES EVALUATION (AUPR & P@80% Side-by-Side)")
+    print("=================================================================")
+    print(f"{'Category':<24} | {'Gold (n)':<8} | {'Margin AUPR':<12} | {'SpanProb AUPR':<14} | {'Margin P@80%':<12} | {'SpanProb P@80%':<14}")
+    print("-" * 95)
+    for cat in MAPPED_CATEGORIES:
+        c_inst = [x for x in all_instances if x["category"] == cat]
+        total_gt = sum(1 for x in c_inst if x["has_gt"])
+        if not c_inst:
+            print(f"{cat:<24} | {'0':<8} | {'n/a':<12} | {'n/a':<14} | {'n/a':<12} | {'n/a':<14}")
+            continue
+        aupr_m, p80_m, _ = compute_official_cuad_category_metrics(c_inst, score_key="score")
+        aupr_p, p80_p, _ = compute_official_cuad_category_metrics(c_inst, score_key="span_prob")
+        print(f"{cat:<24} | {total_gt:<8} | {aupr_m*100:>10.2f}% | {aupr_p*100:>12.2f}% | {p80_m*100:>10.2f}% | {p80_p*100:>12.2f}%")
+
+    mapped_cats_present = [cat for cat in MAPPED_CATEGORIES if any(x["category"] == cat for x in all_instances)]
+    if mapped_cats_present:
+        mean_mapped_m_aupr = float(np.mean([margin_auprs[c] for c in mapped_cats_present]))
+        mean_mapped_p_aupr = float(np.mean([prob_auprs[c] for c in mapped_cats_present]))
+        mean_mapped_m_p80 = float(np.mean([margin_p80s[c] for c in mapped_cats_present]))
+        mean_mapped_p_p80 = float(np.mean([prob_p80s[c] for c in mapped_cats_present]))
+        print("-" * 95)
+        print(f"{'MAPPED MACRO MEAN':<24} | {'':<8} | {mean_mapped_m_aupr*100:>10.2f}% | {mean_mapped_p_aupr*100:>12.2f}% | {mean_mapped_m_p80*100:>10.2f}% | {mean_mapped_p_p80*100:>12.2f}%\n")
+
+    # Mapped Categories Breakdown (Coverage & Error @ 0.85 and 0.50)
     print("\n=================================================================")
     print("MAPPED CATEGORIES EVALUATION (Coverage & Error @ 0.85 and 0.50)")
     print("=================================================================")

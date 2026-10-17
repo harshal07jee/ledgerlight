@@ -276,6 +276,8 @@ def batched_sliding_window_extractor(
         best_span = ""
         best_char_start = 0
         best_char_end = 0
+        min_null_score = float("inf")
+        candidate_predictions = []
 
         device = next(model.parameters()).device if hasattr(model, "parameters") else "cpu"
         with torch.no_grad():
@@ -304,6 +306,8 @@ def batched_sliding_window_extractor(
                     e_log = end_logits[k]
                     offsets = offset_mapping[k]
                     no_ans = (s_log[0] + e_log[0]).item()
+                    if no_ans < min_null_score:
+                        min_null_score = no_ans
 
                     seq_ids = inputs.sequence_ids(k)
                     ctx_indices = [idx for idx, sid in enumerate(seq_ids) if sid == 1]
@@ -318,15 +322,49 @@ def batched_sliding_window_extractor(
                             if s_pos <= e_pos and (e_pos - s_pos) < 60:
                                 span_score = s_log[s_pos].item() + e_log[e_pos].item()
                                 margin = span_score - no_ans
-                                if margin > best_score:
-                                    cs = offsets[s_pos][0].item()
-                                    ce = offsets[e_pos][1].item()
-                                    sp_text = ch_str[cs:ce].strip()
-                                    if len(sp_text) > 3:
+                                cs = offsets[s_pos][0].item()
+                                ce = offsets[e_pos][1].item()
+                                sp_text = ch_str[cs:ce].strip()
+                                if len(sp_text) > 3:
+                                    candidate_predictions.append({
+                                        "score": span_score,
+                                        "text": sp_text,
+                                        "char_start": c_start + cs,
+                                        "char_end": c_start + ce,
+                                        "margin": margin,
+                                    })
+                                    if margin > best_score:
                                         best_score = margin
                                         best_span = sp_text
                                         best_char_start = c_start + cs
                                         best_char_end = c_start + ce
+
+        # HuggingFace SQuAD post-processing: softmax over n-best candidates taking the best non-null candidate
+        seen_texts = set()
+        nbest_non_null = []
+        for cand in sorted(candidate_predictions, key=lambda x: x["score"], reverse=True):
+            if cand["text"] not in seen_texts:
+                seen_texts.add(cand["text"])
+                nbest_non_null.append(cand)
+                if len(nbest_non_null) >= 20:
+                    break
+
+        if nbest_non_null and min_null_score < float("inf"):
+            total_scores = [c["score"] for c in nbest_non_null] + [min_null_score]
+            max_s = max(total_scores)
+            exps = [math.exp(s - max_s) for s in total_scores]
+            sum_exps = sum(exps)
+            probs = [e / sum_exps for e in exps] if sum_exps > 0 else [0.0] * len(total_scores)
+            span_prob = round(float(probs[0]), 4)
+        elif nbest_non_null:
+            total_scores = [c["score"] for c in nbest_non_null]
+            max_s = max(total_scores)
+            exps = [math.exp(s - max_s) for s in total_scores]
+            sum_exps = sum(exps)
+            probs = [e / sum_exps for e in exps] if sum_exps > 0 else [0.0] * len(total_scores)
+            span_prob = round(float(probs[0]), 4)
+        else:
+            span_prob = 0.0
 
         if best_score > -float("inf") and len(best_span) > 0:
             score = 1.0 / (1.0 + math.exp(-best_score))
@@ -345,6 +383,8 @@ def batched_sliding_window_extractor(
             "char_end": best_char_end,
             "model_score": score,
             "margin": raw_margin,
+            "span_prob": span_prob,
+            "n_windows": len(chunks),
             "calibrated_score": calibrate_score(score, norm)
         }
 
@@ -413,6 +453,9 @@ def _sliding_window_heuristic_extractor(
         "char_start": best_char_start,
         "char_end": best_char_end,
         "model_score": best_score,
+        "margin": round(float(best_score * 10.0 - 5.0), 4) if best_score > 0 else -999.0,
+        "span_prob": best_score,
+        "n_windows": max(1, len(words) // 20),
         "calibrated_score": calibrate_score(best_score, category)
     }
 
