@@ -358,3 +358,55 @@ def test_calibration_hook():
     assert 0.0 < cal < 1.0
     # Reset to default
     cuad.CALIBRATION_ENABLED = False
+
+
+def test_heuristic_fallback_safety_cap(monkeypatch):
+    """
+    PRD 7.5 & Safety Requirement:
+    In apps/api/core/cuad.py production path: if the model is unavailable and the heuristic runs,
+    mark the result method="heuristic", cap status at NEEDS_CONFIRMATION, and never AUTO_FILLED.
+    """
+    from apps.api.core import cuad
+    # Enable autofill to verify heuristic is NEVER auto-filled regardless of config
+    monkeypatch.setenv("CUAD_AUTOFILL_ENABLED", "true")
+    assert cuad.is_cuad_autofill_enabled() is True
+
+    # 1. Direct heuristic extraction output with pure presence question and score >= 0.85
+    heuristic_res = {
+        "model_score": 0.95,
+        "cuad_category": "Most Favored Nation",
+        "span_text": "Supplier shall provide most favored nation pricing terms.",
+        "method": "heuristic"
+    }
+    gated = gate_cuad_extraction("CORE_CUST_02", heuristic_res)
+    assert gated["method"] == "heuristic"
+    assert gated["status"] == "NEEDS_CONFIRMATION"
+    assert gated["status"] != "AUTO_FILLED"
+
+    # 2. Production fallback path: mock load_cuad_model returning (None, None)
+    monkeypatch.setattr(cuad, "load_cuad_model", lambda: (None, None))
+    # Allow fallback
+    cuad.ALLOW_HEURISTIC_FALLBACK = True
+    raw_extraction = cuad.extract_best_clause_span(
+        "This agreement includes exclusivity and most favored nation provisions.",
+        "Most Favored Nation"
+    )
+    assert raw_extraction["method"] == "heuristic"
+    assert raw_extraction["model_score"] > 0.0
+
+    gated_fallback = gate_cuad_extraction("CORE_CUST_02", raw_extraction)
+    assert gated_fallback["method"] == "heuristic"
+    assert gated_fallback["status"] == "NEEDS_CONFIRMATION"
+    assert gated_fallback["status"] != "AUTO_FILLED"
+
+    # 3. Disallowed fallback raises RuntimeError
+    cuad.ALLOW_HEURISTIC_FALLBACK = False
+    with pytest.raises(RuntimeError) as exc_info:
+        cuad.extract_best_clause_span(
+            "This agreement includes exclusivity provisions.",
+            "Exclusivity"
+        )
+    assert "heuristic fallback is disabled" in str(exc_info.value)
+    # Reset flag
+    cuad.ALLOW_HEURISTIC_FALLBACK = True
+

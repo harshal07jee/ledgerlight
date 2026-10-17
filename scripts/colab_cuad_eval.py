@@ -61,6 +61,14 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
+# Strict Evaluation Invariant: Never allow silent heuristic fallback during evaluation
+os.environ["CUAD_ALLOW_FALLBACK"] = "0"
+try:
+    import apps.api.core.cuad as cuad_core
+    cuad_core.ALLOW_HEURISTIC_FALLBACK = False
+except Exception:
+    pass
+
 DEFAULT_CHECKPOINT_PATH = os.path.join(os.path.dirname(__file__), "colab_cuad_checkpoint.json")
 DEFAULT_RUN_LOG_PATH = os.path.join(os.path.dirname(__file__), "colab_cuad_run.log")
 DEFAULT_PREDICTIONS_CSV = os.path.join(os.path.dirname(__file__), "cuad_predictions.csv")
@@ -363,6 +371,7 @@ def batched_extractor_gpu(
             "span_prob": span_prob,
             "n_windows": len(chunks),
             "pred_span": best_span[:500],
+            "method": "model"
         }
 
     return results
@@ -373,6 +382,7 @@ def main():
 
     parser = argparse.ArgumentParser(description="Google Colab End-to-End CUAD Benchmark Evaluation Script.")
     parser.add_argument("--smoke-test", action="store_true", help="Run quick local smoke test on 1 contract and 5 categories")
+    parser.add_argument("--pilot", action="store_true", help="Run pilot benchmark on 5 contracts x all 41 categories to print seconds per contract and estimate total Colab time")
     parser.add_argument("--contract-idx", type=int, default=None, help="Test contract index in held-out split")
     parser.add_argument("--max-contracts", type=int, default=None, help="Limit number of contracts to evaluate")
     parser.add_argument("--categories", nargs="+", default=None, help="Specific categories to evaluate")
@@ -387,6 +397,11 @@ def main():
         checkpoint_path = args.checkpoint_file or os.path.join(os.path.dirname(__file__), "colab_cuad_checkpoint_smoke.json")
         predictions_csv = args.output_csv or os.path.join(os.path.dirname(__file__), "cuad_predictions_smoke.csv")
         categories_to_eval = args.categories or SMOKE_5_CATEGORIES
+    elif args.pilot:
+        RUN_LOG_PATH = args.log_file or os.path.join(os.path.dirname(__file__), "colab_cuad_run_pilot.log")
+        checkpoint_path = args.checkpoint_file or os.path.join(os.path.dirname(__file__), "colab_cuad_checkpoint_pilot.json")
+        predictions_csv = args.output_csv or os.path.join(os.path.dirname(__file__), "cuad_predictions_pilot.csv")
+        categories_to_eval = args.categories or CUAD_41_CATEGORIES
     else:
         RUN_LOG_PATH = args.log_file or DEFAULT_RUN_LOG_PATH
         checkpoint_path = args.checkpoint_file or DEFAULT_CHECKPOINT_PATH
@@ -433,6 +448,10 @@ def main():
         target_idx = args.contract_idx if args.contract_idx is not None else 1
         test_contracts = [all_test_contracts[target_idx]]
         log(f"Smoke test mode active: evaluating 1 contract (index {target_idx}: {test_contracts[0]['title'][:40]}) x {len(categories_to_eval)} categories.")
+    elif args.pilot:
+        pilot_count = min(5, len(all_test_contracts))
+        test_contracts = all_test_contracts[:pilot_count]
+        log(f"Pilot mode active: evaluating {len(test_contracts)} contracts x {len(categories_to_eval)} categories (5 contracts x all 41 categories) to estimate runtime.")
     elif args.contract_idx is not None:
         test_contracts = [all_test_contracts[args.contract_idx]]
         log(f"Evaluating 1 specified contract (index {args.contract_idx}): {test_contracts[0]['title'][:40]}.")
@@ -443,12 +462,16 @@ def main():
         test_contracts = all_test_contracts
         log(f"Evaluating all {len(test_contracts)} held-out test contracts.")
 
-    # Load Model & Tokenizer
+    # Load Model & Tokenizer - Strict invariant: abort immediately with clear error if real model fails to load
     log(f"Loading extractive QA model ({MODEL_REPO}) onto {device}...")
-    tokenizer = AutoTokenizer.from_pretrained(MODEL_REPO)
-    model = AutoModelForQuestionAnswering.from_pretrained(MODEL_REPO)
-    model.eval()
-    model.to(device)
+    try:
+        tokenizer = AutoTokenizer.from_pretrained(MODEL_REPO)
+        model = AutoModelForQuestionAnswering.from_pretrained(MODEL_REPO)
+        model.eval()
+        model.to(device)
+    except Exception as e:
+        log(f"FATAL ERROR: Failed to load real model {MODEL_REPO}: {e}")
+        raise RuntimeError(f"ABORTING: Real model failed to load ({MODEL_REPO}): {e}. Silent heuristic fallback is strictly prohibited during evaluation.") from e
 
     # Official queries map from first test contract
     queries_map = {}
@@ -472,6 +495,7 @@ def main():
     total_test = len(test_contracts)
     log(f"Beginning evaluation across {total_test} contract(s) x {len(categories_to_eval)} categories = {total_test * len(categories_to_eval)} instances (NO TRUNCATION)...")
 
+    pilot_timings = []
     for idx, c in enumerate(test_contracts):
         title = c["title"]
         if title in checkpoint:
@@ -509,11 +533,13 @@ def main():
             margin = p_item.get("margin", -999.0)
             span_prob = p_item.get("span_prob", 0.0)
             n_windows = p_item.get("n_windows", 0)
+            method = p_item.get("method", "model")
             p_span = p_item.get("pred_span", "")
 
             max_iou = max([compute_token_iou(g, p_span) for g in answers]) if has_gt else 0.0
 
             contract_results[cat] = {
+                "method": method,
                 "score": sc,
                 "margin": margin,
                 "span_prob": span_prob,
@@ -531,7 +557,24 @@ def main():
         except Exception as e:
             log(f"Warning: Failed to write checkpoint: {e}")
 
-        log(f"[{idx+1}/{total_test}] {title[:35]} ({c_len} chars, {contract_results[categories_to_eval[0]]['n_windows']} windows) finished in {elapsed:.1f}s (saved to checkpoint)")
+        first_cat_windows = contract_results[categories_to_eval[0]]['n_windows']
+        pilot_timings.append((title, elapsed, first_cat_windows))
+        sec_per_cat = elapsed / len(categories_to_eval) if categories_to_eval else 0.0
+        log(f"[{idx+1}/{total_test}] {title[:35]} ({c_len} chars, {first_cat_windows} windows) finished in {elapsed:.2f}s ({sec_per_cat:.2f}s/category) (saved to checkpoint)")
+
+    # If pilot mode was run, print comprehensive runtime summary & Colab full run estimate
+    if args.pilot and pilot_timings:
+        avg_contract_sec = sum(t[1] for t in pilot_timings) / len(pilot_timings)
+        projected_51_sec = avg_contract_sec * len(all_test_contracts)
+        log("\n=================================================================")
+        log(f"PILOT RUNTIME SUMMARY & ESTIMATE ({len(pilot_timings)} contracts x {len(categories_to_eval)} categories)")
+        log("=================================================================")
+        for i, (ctitle, ctime, cwin) in enumerate(pilot_timings, 1):
+            log(f"  Contract {i}: {ctitle[:35]:<35} | {cwin:>4} windows | {ctime:>6.2f}s ({ctime / len(categories_to_eval):.2f}s/category)")
+        log(f"Average runtime per contract: {avg_contract_sec:.2f}s")
+        log(f"Projected runtime for full 51 test contracts (all 41 categories):")
+        log(f"  {projected_51_sec:.1f}s ({projected_51_sec / 60:.2f} minutes / {projected_51_sec / 3600:.2f} hours)")
+        log("=================================================================\n")
 
     # Compile all evaluation instances
     all_instances = []
@@ -543,6 +586,7 @@ def main():
             margin = float(item["margin"])
             span_prob = float(item.get("span_prob", 0.0))
             n_windows = int(item.get("n_windows", 0))
+            method = str(item.get("method", "model"))
             p_span = str(item["pred_span"])
             g_span = str(item["gold_span"])
             has_gt = bool(item["has_gt"])
@@ -560,6 +604,7 @@ def main():
                 "contract": c_title,
                 "category": cat,
                 "n_windows": n_windows,
+                "method": method,
                 "score": sc,
                 "margin": margin,
                 "span_prob": span_prob,
@@ -573,9 +618,19 @@ def main():
     log(f"\nTotal compiled evaluation instances: {len(all_instances)}")
 
     # =================================================================
-    # REQUIREMENT 4: Anti-Synthetic & No-Truncation Verification Checks
+    # REQUIREMENT 4: Anti-Synthetic, Model-Only & No-Truncation Verification Checks
     # =================================================================
-    log("Running Requirement 4 Anti-Synthetic and No-Truncation Verification Checks...")
+    log("Running Requirement 4 Anti-Synthetic, Method Verification, and No-Truncation Checks...")
+
+    # 0. Check that every row method is strictly 'model'
+    non_model_rows = [x for x in all_instances if x.get("method") != "model"]
+    if non_model_rows:
+        methods_found = set(x.get("method") for x in non_model_rows)
+        raise ValueError(
+            f"SYNTHETIC/FALLBACK AUDIT FAILED: {len(non_model_rows)} rows have method != 'model' (found: {methods_found})! "
+            "Heuristic extraction is strictly forbidden during benchmark evaluation."
+        )
+    log(f"✓ Method verification passed: all {len(all_instances)} rows verified method == 'model'.")
 
     # 1. Check that every row has a real model margin
     missing_margin = sum(1 for x in all_instances if "margin" not in x or x["margin"] is None or math.isnan(x["margin"]))
@@ -612,7 +667,7 @@ def main():
     # Save to predictions CSV
     with open(predictions_csv, "w", newline="", encoding="utf-8", errors="replace") as f:
         writer = csv.writer(f)
-        writer.writerow(["contract", "category", "n_windows", "score", "margin", "span_prob", "predicted span", "gold span", "iou", "correct"])
+        writer.writerow(["contract", "category", "n_windows", "method", "score", "margin", "span_prob", "predicted span", "gold span", "iou", "correct"])
         for x in all_instances:
             p_span_clean = x["predicted_span"].replace("\r\n", " ").replace("\n", " ").replace("\r", " ")
             g_span_clean = x["gold_span"].replace("\r\n", " ").replace("\n", " ").replace("\r", " ")
@@ -620,6 +675,7 @@ def main():
                 x["contract"],
                 x["category"],
                 x["n_windows"],
+                x["method"],
                 f"{x['score']:.4f}",
                 f"{x['margin']:.4f}",
                 f"{x['span_prob']:.4f}",

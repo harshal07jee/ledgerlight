@@ -20,9 +20,18 @@ Key Invariants:
 import os
 import math
 import time
-from typing import List, Dict, Any, Optional, Tuple, Set
+from typing import List, Dict, Any, Optional, Tuple, Set, Union
 from datetime import datetime, timezone
 import uuid
+
+# Safety switch: allows or disallows silent fallback to heuristic extractor
+ALLOW_HEURISTIC_FALLBACK: bool = True
+
+def is_heuristic_fallback_allowed() -> bool:
+    if not ALLOW_HEURISTIC_FALLBACK:
+        return False
+    return os.getenv("CUAD_ALLOW_FALLBACK", "1").lower() not in ("0", "false", "no")
+
 
 # ---------------------------------------------------------------------------
 # 1. Official 41 CUAD Categories (Strict Whitelist)
@@ -224,20 +233,26 @@ def batched_sliding_window_extractor(
     model=None,
     batch_size: int = 16,
     max_length: int = CUAD_MAX_SEQ_LENGTH,
-    stride: int = CUAD_DOC_STRIDE
+    stride: int = CUAD_DOC_STRIDE,
+    allow_fallback: Optional[bool] = None
 ) -> Dict[str, Dict[str, Any]]:
     """
     Unified extractive QA sliding-window engine used in both production and evaluation.
     Evaluates categories across full, un-truncated contract text using batched inference.
     """
+    can_fallback = allow_fallback if allow_fallback is not None else is_heuristic_fallback_allowed()
     if tokenizer is None or model is None:
         tok, mod = load_cuad_model()
         if tok is None or mod is None:
+            if not can_fallback:
+                raise RuntimeError(
+                    "CUAD real model failed to load in batched_sliding_window_extractor and heuristic fallback is disabled."
+                )
             results = {}
             for cat in categories:
                 norm = CUAD_CATEGORIES_SET.get(cat.lower(), cat)
                 q = _OFFICIAL_QUERIES.get(norm, f'Highlight the parts (if any) of this contract related to "{norm}" that should be reviewed.')
-                results[norm] = _sliding_window_heuristic_extractor(contract_text, norm, q)
+                results[norm] = _sliding_window_heuristic_extractor(contract_text, norm, q, allow_fallback=can_fallback)
             return results
         tokenizer, model = tok, mod
 
@@ -385,7 +400,8 @@ def batched_sliding_window_extractor(
             "margin": raw_margin,
             "span_prob": span_prob,
             "n_windows": len(chunks),
-            "calibrated_score": calibrate_score(score, norm)
+            "calibrated_score": calibrate_score(score, norm),
+            "method": "model"
         }
 
     return results
@@ -395,7 +411,8 @@ def extract_best_clause_span(
     contract_text: str,
     cuad_category: str,
     max_length: int = CUAD_MAX_SEQ_LENGTH,
-    stride: int = CUAD_DOC_STRIDE
+    stride: int = CUAD_DOC_STRIDE,
+    allow_fallback: Optional[bool] = None
 ) -> Dict[str, Any]:
     """
     Performs extractive QA using overlapping sliding windows.
@@ -407,7 +424,8 @@ def extract_best_clause_span(
         categories=[category_norm],
         max_length=max_length,
         stride=stride,
-        batch_size=16
+        batch_size=16,
+        allow_fallback=allow_fallback
     )
     return res[category_norm]
 
@@ -416,12 +434,20 @@ def extract_best_clause_span(
 def _sliding_window_heuristic_extractor(
     contract_text: str,
     category: str,
-    query: str
+    query: str,
+    allow_fallback: Optional[bool] = None
 ) -> Dict[str, Any]:
     """
     Deterministic sliding-window matcher used when deep neural model is not active
     or in unit testing environments.
     """
+    can_fallback = allow_fallback if allow_fallback is not None else is_heuristic_fallback_allowed()
+    if not can_fallback:
+        raise RuntimeError(
+            f"CUAD heuristic extractor invoked for category '{category}', but heuristic fallback is disabled. "
+            "Evaluation must strictly use the real neural model."
+        )
+
     words = contract_text.split()
     cat_terms = category.lower().replace("-", " ").replace("/", " ").split()
     
@@ -456,7 +482,8 @@ def _sliding_window_heuristic_extractor(
         "margin": round(float(best_score * 10.0 - 5.0), 4) if best_score > 0 else -999.0,
         "span_prob": best_score,
         "n_windows": max(1, len(words) // 20),
-        "calibrated_score": calibrate_score(best_score, category)
+        "calibrated_score": calibrate_score(best_score, category),
+        "method": "heuristic"
     }
 
 
@@ -465,30 +492,43 @@ def _sliding_window_heuristic_extractor(
 # ---------------------------------------------------------------------------
 def gate_cuad_extraction(
     question_id: str,
-    extraction_result: Dict[str, Any]
+    extraction_result: Union[Dict[str, Any], str],
+    maybe_extraction_result: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
     """
     Applies strict confidence gating rules per PRD 7.5:
     - Only pure presence questions above T_high may AUTO_FILL.
+    - If model is unavailable and heuristic runs, mark result method="heuristic",
+      cap status at NEEDS_CONFIRMATION, and never AUTO_FILLED.
     - All other clauses or scores between T_low and T_high return NEEDS_CONFIRMATION.
     - Scores below T_low return MANUAL_REQUIRED.
     """
-    model_score = extraction_result.get("model_score", 0.0)
-    category = extraction_result.get("cuad_category", "Unknown")
-    span_text = extraction_result.get("span_text", "")
+    if maybe_extraction_result is not None:
+        category_arg = str(extraction_result)
+        res = maybe_extraction_result
+    else:
+        category_arg = None
+        res = extraction_result
+
+    model_score = res.get("model_score", 0.0)
+    category = res.get("cuad_category", category_arg or "Unknown")
+    span_text = res.get("span_text", "")
     t_high = get_t_high()
     t_low = get_t_low()
 
     is_pure_presence = question_id in PURE_PRESENCE_QUESTIONS
+    is_heuristic = (res.get("method") == "heuristic")
+    method = "heuristic" if is_heuristic else "CUAD_EXTRACTIVE_QA"
 
     if model_score >= t_high:
-        if is_pure_presence and is_cuad_autofill_enabled():
+        if is_pure_presence and is_cuad_autofill_enabled() and not is_heuristic:
             status = "AUTO_FILLED"
             proposed_val = True
         else:
             # Compliance questions: a clause span is evidence, not a verdict.
             # User must decide compliance!
             # Or autofill is disabled via config (CUAD_AUTOFILL_ENABLED=false).
+            # Or heuristic extractor: capped at NEEDS_CONFIRMATION, never AUTO_FILLED.
             status = "NEEDS_CONFIRMATION"
             proposed_val = True if is_pure_presence else f"Clause found: {category}"
         confidence = model_score
@@ -507,13 +547,13 @@ def gate_cuad_extraction(
         "status": status,
         "confidence": confidence,
         "model_score": model_score,
-        "calibrated_score": extraction_result.get("calibrated_score"),
+        "calibrated_score": res.get("calibrated_score"),
         "answer_value": proposed_val,
-        "method": "CUAD_EXTRACTIVE_QA",
+        "method": method,
         "is_pure_presence": is_pure_presence,
         "snippet": span_text[:500] if span_text else None,
-        "char_start": extraction_result.get("char_start"),
-        "char_end": extraction_result.get("char_end")
+        "char_start": res.get("char_start"),
+        "char_end": res.get("char_end")
     }
 
 
@@ -536,7 +576,7 @@ def create_extraction_audit_log_entry(
         "id": str(uuid.uuid4()),
         "assessment_id": assessment_id,
         "question_id": question_id,
-        "method": "CUAD_EXTRACTIVE_QA",
+        "method": gated_result.get("method", "CUAD_EXTRACTIVE_QA"),
         "model_name": CUAD_MODEL_REPO,
         "model_version": CUAD_MODEL_VERSION,
         "raw_score": gated_result.get("model_score", 0.0),
