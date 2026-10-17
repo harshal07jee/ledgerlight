@@ -277,6 +277,7 @@ def batched_sliding_window_extractor(
         best_char_start = 0
         best_char_end = 0
 
+        device = next(model.parameters()).device if hasattr(model, "parameters") else "cpu"
         with torch.no_grad():
             for b_idx in range(0, len(chunks), batch_size):
                 b_chunks = chunks[b_idx:b_idx + batch_size]
@@ -293,9 +294,10 @@ def batched_sliding_window_extractor(
                 )
 
                 offset_mapping = inputs.pop("offset_mapping")
-                outputs = model(**inputs)
-                start_logits = outputs.start_logits
-                end_logits = outputs.end_logits
+                model_inputs = {k: v.to(device) for k, v in inputs.items()}
+                outputs = model(**model_inputs)
+                start_logits = outputs.start_logits.cpu()
+                end_logits = outputs.end_logits.cpu()
 
                 for k, (c_start, c_end, ch_str) in enumerate(b_chunks):
                     s_log = start_logits[k]
@@ -329,9 +331,11 @@ def batched_sliding_window_extractor(
         if best_score > -float("inf") and len(best_span) > 0:
             score = 1.0 / (1.0 + math.exp(-best_score))
             score = round(float(score), 4)
+            raw_margin = round(float(best_score), 4)
         else:
             score = 0.0
             best_span = ""
+            raw_margin = -999.0
 
         results[norm] = {
             "clause_found": len(best_span) > 0 and score >= get_t_low(),
@@ -340,6 +344,7 @@ def batched_sliding_window_extractor(
             "char_start": best_char_start,
             "char_end": best_char_end,
             "model_score": score,
+            "margin": raw_margin,
             "calibrated_score": calibrate_score(score, norm)
         }
 

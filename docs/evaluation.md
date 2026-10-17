@@ -7,7 +7,7 @@ This document reports the verified benchmark evaluation of the local extractive 
 ### Strict Audit Corrections Applied (M6 Verification):
 1. **Quarantine and Removal of Fabricated Fallbacks**: All 1,581 synthetic fallback rows (which previously inserted constant scores 0.6500 for positives and 0.1500 for negatives) have been removed from `docs/cuad_predictions.csv` and evaluation metrics. All reported statistics derive strictly from genuine model inference.
 2. **Official Per-Category CUAD Logic**: Metrics are computed per category following the official Atticus Project `evaluate.py` logic (`metrics.auc` on monotonically adjusted precision curves across confidence thresholds), rather than pooled across unrelated categories.
-3. **Root Cause Analysis of Truncation & Low Recall**: In `scripts/threshold_study.py`, contracts were truncated to 25,000 characters (`eval_text = c_text[:25000]`). Because 32 of 51 test contracts are longer than 25,000 characters (mean length 36,000 characters; max 225,000 characters), 85% of gold clause spans were located beyond character 25,000 and physically omitted from the model context. This caused real model recall to cap at 6%–29% per category, producing a macro-average AUPR of 5.96% compared to the published benchmark of 42.6% on un-truncated contracts.
+3. **Root Cause Analysis of Truncation & Low Recall**: In `scripts/threshold_study.py`, contracts were truncated to 25,000 characters (`eval_text = c_text[:25000]`). Because 32 of 51 test contracts are longer than 25,000 characters (mean length 53,480 characters; max 289,615 characters), 61.89% of gold clause spans in the 10 evaluated categories (216 of 349 spans) were located beyond character 25,000 and physically omitted from the model context. This caused real model recall to cap at 6%–29% per category, producing a macro-average AUPR of 5.96% compared to the published benchmark of 42.6% on un-truncated contracts.
 4. **Exact Wilson Confidence Intervals**: All proportions report exact Wilson score confidence intervals. With sample size $n < 30$, claims of 0.0% error are prohibited; the full statistical interval is reported.
 5. **Strict Auto-Fill Invariant**: Under `CUAD_AUTOFILL_ENABLED=false` (default configuration), contract-clause questions are **NEVER AUTO_FILLED**, returning `NEEDS_CONFIRMATION` even at score $\ge 0.85$.
 
@@ -16,7 +16,7 @@ This document reports the verified benchmark evaluation of the local extractive 
 - **Evaluated Instances**: 510 genuine predictions across 51 held-out test contracts (10 diligence categories)
 - **Macro-Average AUPR (Official CUAD Script Logic)**: **5.96%**
 - **Published CUAD Paper Baseline (RoBERTa-base, Hendrycks et al. Table 2)**: **42.6% AUPR**
-- **Benchmark Gap**: **36.64 percentage points** (attributable to 25,000-character input truncation dropping >80% of target contract clauses)
+- **Benchmark Gap**: **36.64 percentage points** (attributable to 25,000-character input truncation dropping 61.89% of target contract clauses)
 - **Precision at 80% Recall (P @ 80% R)**: **0.00%** (0.00% because truncation prevented recall from ever reaching the 80% threshold; maximum observed recall was 29.41% on Renewal Term)
 - **Expected Calibration Error (ECE, 10 equal-width bins)**: **67.81%**
 
